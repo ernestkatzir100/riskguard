@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  /* ═══ RiskGuard Design System — exact V11 palette ═══ */
+
+  /* Navigation */
+  --color-nav-bg: #1E2D3D;
+  --color-nav-hover: #2A3F52;
+
+  /* Core palette */
+  --color-accent: #4A8EC2;
+  --color-accent-teal: #5BB8C9;
+  --color-accent-light: #E8F4FA;
+  --color-accent-dark: #3A7AAF;
+
+  /* Semantic */
+  --color-success: #2E8B57;
+  --color-success-bg: #EFF8F2;
+  --color-warning: #C8922A;
+  --color-warning-bg: #FDF8ED;
+  --color-danger: #C0392B;
+  --color-danger-bg: #FDF0EE;
+
+  /* Surfaces & text */
+  --color-bg: #F5F7FA;
+  --color-surface: #FFFFFF;
+  --color-border: #E1E8EF;
+  --color-border-light: #F0F3F7;
+  --color-text: #1A2332;
+  --color-text-sec: #4A5568;
+  --color-text-muted: #8896A6;
+}
+
+/* ═══ Base styles ═══ */
+body {
+  font-family: var(--font-assistant);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* ═══ Animations — from V11 JSX ═══ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

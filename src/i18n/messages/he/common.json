@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "RiskGuard",
+    "tagline": "פלטפורמת ניהול סיכונים לנותני אשראי"
+  },
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "riskGovernance": "ממשל סיכונים",
+    "operationalRisk": "סיכון תפעולי",
+    "outsourcing": "מיקור חוץ",
+    "bcp": "המשכיות עסקית",
+    "cyber": "סייבר",
+    "documents": "מסמכים",
+    "regulation": "רגולציה",
+    "tasks": "משימות",
+    "settings": "הגדרות"
+  },
+  "common": {
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "delete": "מחיקה",
+    "edit": "עריכה",
+    "add": "הוספה",
+    "search": "חיפוש",
+    "filter": "סינון",
+    "export": "ייצוא",
+    "status": "סטטוס",
+    "actions": "פעולות",
+    "loading": "טוען...",
+    "noResults": "לא נמצאו תוצאות",
+    "confirm": "אישור",
+    "back": "חזרה"
+  },
+  "status": {
+    "open": "פתוח",
+    "mitigated": "מטופל",
+    "accepted": "מקובל",
+    "closed": "סגור",
+    "draft": "טיוטה",
+    "approved": "מאושר",
+    "pending": "ממתין",
+    "inProgress": "בתהליך",
+    "completed": "הושלם",
+    "overdue": "באיחור",
+    "compliant": "תואם",
+    "nonCompliant": "לא תואם",
+    "notStarted": "לא התחיל",
+    "notApplicable": "לא רלוונטי"
+  },
+  "risk": {
+    "title": "מאגר סיכונים",
+    "probability": "סבירות",
+    "impact": "השפעה",
+    "score": "ציון סיכון",
+    "category": "קטגוריה",
+    "owner": "אחראי",
+    "controls": "בקרות"
+  },
+  "auth": {
+    "login": "כניסה",
+    "logout": "יציאה",
+    "email": "דוא״ל",
+    "magicLink": "שלח קישור כניסה"
+  }
+}

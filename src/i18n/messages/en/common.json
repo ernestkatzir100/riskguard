@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "RiskGuard",
+    "tagline": "Risk Management Platform for Credit Institutions"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "riskGovernance": "Risk Governance",
+    "operationalRisk": "Operational Risk",
+    "outsourcing": "Outsourcing",
+    "bcp": "Business Continuity",
+    "cyber": "Cyber",
+    "documents": "Documents",
+    "regulation": "Regulation",
+    "tasks": "Tasks",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "status": "Status",
+    "actions": "Actions",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "status": {
+    "open": "Open",
+    "mitigated": "Mitigated",
+    "accepted": "Accepted",
+    "closed": "Closed",
+    "draft": "Draft",
+    "approved": "Approved",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "overdue": "Overdue",
+    "compliant": "Compliant",
+    "nonCompliant": "Non-Compliant",
+    "notStarted": "Not Started",
+    "notApplicable": "Not Applicable"
+  },
+  "risk": {
+    "title": "Risk Register",
+    "probability": "Probability",
+    "impact": "Impact",
+    "score": "Risk Score",
+    "category": "Category",
+    "owner": "Owner",
+    "controls": "Controls"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "magicLink": "Send Magic Link"
+  }
+}

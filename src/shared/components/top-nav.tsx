@@ -1,0 +1,481 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard, Shield, BarChart3, Handshake, ShieldCheck,
+  Lock, ShieldAlert, Zap, FileText, BookOpen, CheckSquare,
+  Settings, Bell, Building2, ChevronDown, ChevronUp,
+  CreditCard, Gauge, FileWarning, FileOutput, Briefcase,
+  Crown, Bot,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+/* ═══════════════════════════════════════════════
+   Exact V11 color palette
+   ═══════════════════════════════════════════════ */
+const C = {
+  navBg: '#1E2D3D',
+  navHover: '#2A3F52',
+  accent: '#4A8EC2',
+  accentTeal: '#5BB8C9',
+  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
+  textMuted: '#8896A6',
+  danger: '#C0392B',
+} as const;
+
+/* ═══════════════════════════════════════════════
+   Navigation structure — exact match to V11 JSX
+   ═══════════════════════════════════════════════ */
+type NavItem = {
+  id: string;
+  label: string;
+  Icon: LucideIcon;
+  href: string;
+};
+
+type NavGroup = {
+  label: string | null;
+  sub?: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: null,
+    items: [
+      { id: 'dash', label: 'דשבורד', Icon: LayoutDashboard, href: '/he' },
+      { id: 'riskreg', label: 'מאגר סיכונים ובקרות', Icon: Shield, href: '/he/risk-register' },
+      { id: 'agents', label: 'סוכנים', Icon: Bot, href: '/he/agents' },
+    ],
+  },
+  {
+    label: 'ממשל תאגידי',
+    sub: 'Corporate Governance',
+    items: [
+      { id: 'board', label: 'דירקטוריון', Icon: Briefcase, href: '/he/board' },
+      { id: 'gov', label: 'ממשל סיכונים', Icon: Shield, href: '/he/risk-governance' },
+      { id: 'cgov', label: 'ממשל סייבר', Icon: Lock, href: '/he/cyber-governance' },
+    ],
+  },
+  {
+    label: 'ניהול סיכונים',
+    sub: '2024-10-2',
+    items: [
+      { id: 'ops', label: 'סיכון תפעולי', Icon: BarChart3, href: '/he/operational-risk' },
+      { id: 'out', label: 'מיקור חוץ', Icon: Handshake, href: '/he/outsourcing' },
+      { id: 'bcp', label: 'המשכיות עסקית', Icon: ShieldCheck, href: '/he/bcp' },
+    ],
+  },
+  {
+    label: 'ניהול סיכוני סייבר',
+    sub: '2022-10-9',
+    items: [
+      { id: 'cpro', label: 'הגנת סייבר', Icon: ShieldAlert, href: '/he/cyber-protection' },
+      { id: 'cinc', label: 'אירועי סייבר', Icon: Zap, href: '/he/cyber-incidents' },
+    ],
+  },
+  {
+    label: 'PRO',
+    items: [
+      { id: 'credit', label: 'סיכון אשראי', Icon: CreditCard, href: '/he/credit-risk' },
+      { id: 'kri', label: 'KRI', Icon: Gauge, href: '/he/kri' },
+      { id: 'events', label: 'דיווח אירועים', Icon: FileWarning, href: '/he/event-reporting' },
+      { id: 'reports', label: 'דוחות', Icon: FileOutput, href: '/he/reports' },
+    ],
+  },
+  {
+    label: 'כלים',
+    items: [
+      { id: 'docs', label: 'מסמכים', Icon: FileText, href: '/he/documents' },
+      { id: 'reg', label: 'רגולציה', Icon: BookOpen, href: '/he/regulation' },
+      { id: 'tasks', label: 'משימות', Icon: CheckSquare, href: '/he/tasks' },
+      { id: 'settings', label: 'הגדרות', Icon: Settings, href: '/he/settings' },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════
+   Dropdown menu component
+   ═══════════════════════════════════════════════ */
+function NavDropdown({
+  group,
+  isOpen,
+  onToggle,
+  activeId,
+  onNavigate,
+}: {
+  group: NavGroup;
+  isOpen: boolean;
+  onToggle: () => void;
+  activeId: string | null;
+  onNavigate: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onToggle();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onToggle]);
+
+  const isPro = group.label === 'PRO';
+  const hasActive = group.items.some((it) => it.id === activeId);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <button
+        onClick={onToggle}
+        style={{
+          background: isPro
+            ? isOpen || hasActive
+              ? 'rgba(124,111,208,0.15)'
+              : 'rgba(124,111,208,0.08)'
+            : isOpen || hasActive
+              ? 'rgba(74,142,194,0.1)'
+              : 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: isPro
+            ? isOpen || hasActive
+              ? '#B0A4E8'
+              : '#8B7FD0'
+            : isOpen || hasActive
+              ? '#8CC8E8'
+              : '#5A7080',
+          fontSize: 11,
+          fontWeight: 800,
+          fontFamily: 'var(--font-rubik)',
+          padding: '4px 8px 4px 4px',
+          borderRadius: 5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          letterSpacing: 0.3,
+          transition: 'all 0.15s',
+        }}
+      >
+        {isPro && <Crown size={10} />}
+        {group.label}
+        {isOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: 0,
+            zIndex: 200,
+            background: C.navBg,
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 12,
+            padding: 8,
+            minWidth: 200,
+            boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(12px)',
+            animation: 'fadeInUp 0.2s ease',
+          }}
+        >
+          {group.sub && (
+            <div
+              style={{
+                fontSize: 9,
+                color: '#475569',
+                fontFamily: 'var(--font-rubik)',
+                padding: '4px 10px 6px',
+                letterSpacing: 0.5,
+              }}
+            >
+              חוזר {group.sub}
+            </div>
+          )}
+          {group.items.map((item) => {
+            const active = item.id === activeId;
+            const Ic = item.Icon;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                onClick={onNavigate}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  background: active ? 'rgba(74,142,194,0.15)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: active ? '#8CC8E8' : '#94A3B8',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: active ? 600 : 400,
+                  fontFamily: 'var(--font-rubik)',
+                  transition: 'all 0.12s',
+                  textAlign: 'right',
+                  textDecoration: 'none',
+                }}
+              >
+                <Ic size={14} strokeWidth={active ? 2.2 : 1.8} />
+                <span style={{ flex: 1 }}>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   Main TopNav component
+   ═══════════════════════════════════════════════ */
+export function TopNav() {
+  const pathname = usePathname();
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  // Resolve active nav item from pathname
+  const allItems = NAV_GROUPS.flatMap((g) => g.items);
+  const activeItem = allItems.find((item) => {
+    if (item.href === '/he' && pathname === '/he') return true;
+    if (item.href !== '/he' && pathname.startsWith(item.href)) return true;
+    return false;
+  });
+  const activeId = activeItem?.id ?? 'dash';
+
+  const toggleGroup = (label: string) => {
+    setOpenGroup((prev) => (prev === label ? null : label));
+  };
+
+  return (
+    <div style={{ background: C.navBg, position: 'sticky', top: 0, zIndex: 100, direction: 'rtl' }}>
+      {/* ── Brand bar ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 28px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        {/* Right side: Logo + company */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: C.accentGrad,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 17,
+              fontWeight: 800,
+              color: 'white',
+              fontFamily: 'var(--font-rubik)',
+            }}
+          >
+            R
+          </div>
+          <span
+            style={{
+              color: 'white',
+              fontSize: 17,
+              fontWeight: 700,
+              fontFamily: 'var(--font-rubik)',
+            }}
+          >
+            RiskGuard
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>|</span>
+          <Building2 size={14} color={C.textMuted} />
+          <span
+            style={{
+              color: C.textMuted,
+              fontSize: 13,
+              fontFamily: 'var(--font-assistant)',
+            }}
+          >
+            אשראי פייננס בע״מ
+          </span>
+        </div>
+
+        {/* Left side: PRO badge + bell + user */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              background: C.accentGrad,
+              color: 'white',
+              padding: '3px 12px',
+              borderRadius: 10,
+              fontFamily: 'var(--font-rubik)',
+            }}
+          >
+            PRO
+          </span>
+
+          {/* Notification bell */}
+          <div style={{ position: 'relative', cursor: 'pointer' }}>
+            <Bell size={18} color="#CBD5E1" />
+            <div
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: C.danger,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                fontWeight: 700,
+                color: 'white',
+              }}
+            >
+              2
+            </div>
+          </div>
+
+          {/* User avatar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              borderRight: '1px solid rgba(255,255,255,0.1)',
+              paddingRight: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: C.accentGrad,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: 'var(--font-rubik)',
+              }}
+            >
+              יל
+            </div>
+            <div>
+              <div
+                style={{
+                  color: '#E2E8F0',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-rubik)',
+                  lineHeight: 1.2,
+                }}
+              >
+                יוסי לוי
+              </div>
+              <div
+                style={{
+                  color: '#64748B',
+                  fontSize: 10,
+                  fontFamily: 'var(--font-assistant)',
+                  lineHeight: 1.2,
+                }}
+              >
+                מנהל סיכונים
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Nav bar ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 28px',
+          height: 44,
+          position: 'relative',
+        }}
+      >
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} style={{ display: 'flex', alignItems: 'center' }}>
+            {/* Separator between groups */}
+            {gi > 0 && (
+              <div
+                style={{
+                  width: 1,
+                  height: 20,
+                  background: 'rgba(255,255,255,0.1)',
+                  margin: '0 6px',
+                }}
+              />
+            )}
+
+            {group.label ? (
+              /* Grouped items with dropdown */
+              <NavDropdown
+                group={group}
+                isOpen={openGroup === group.label}
+                onToggle={() => toggleGroup(group.label!)}
+                activeId={activeId}
+                onNavigate={() => setOpenGroup(null)}
+              />
+            ) : (
+              /* Ungrouped items — inline buttons */
+              group.items.map((item) => {
+                const active = item.id === activeId;
+                const Ic = item.Icon;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    style={{
+                      background: active ? 'rgba(74,142,194,0.15)' : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: active ? '#8CC8E8' : '#7B8FA0',
+                      padding: '7px 9px',
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: active ? 600 : 400,
+                      fontFamily: 'var(--font-rubik)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.12s',
+                      whiteSpace: 'nowrap',
+                      borderBottom: active
+                        ? `2px solid ${C.accentTeal}`
+                        : '2px solid transparent',
+                      marginBottom: -1,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Ic size={12} strokeWidth={active ? 2.2 : 1.8} />
+                    {item.label}
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
+}
