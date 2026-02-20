@@ -33,9 +33,24 @@
 
 /* ═══ Base styles ═══ */
 body {
-  font-family: var(--font-assistant);
+  font-family: var(--font-assistant), 'Assistant', sans-serif;
+  font-weight: 400;
   color: var(--color-text);
   background-color: var(--color-bg);
+}
+
+/* ═══ Typography — Rubik for headings & labels ═══ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-rubik), 'Rubik', sans-serif;
+  font-weight: 700;
+}
+
+label,
+th,
+[data-label],
+.font-heading {
+  font-family: var(--font-rubik), 'Rubik', sans-serif;
+  font-weight: 600;
 }
 
 /* ═══ Animations — from V11 JSX ═══ */
