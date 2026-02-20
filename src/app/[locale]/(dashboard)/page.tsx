@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   Shield, BarChart3, Handshake, ShieldCheck, Lock, ShieldAlert,
   Zap, AlertTriangle, Target, ArrowUpRight, ArrowDownRight,
@@ -68,6 +69,13 @@ const ALL_MODULES: ModuleData[] = [
   { id: 'events', Icon: FileWarning, name: 'דיווח אירועים', score: 65, tasks: 1, reqs: 8, met: 5, reg: 'risk' },
   { id: 'reports', Icon: FileOutput, name: 'דוחות', score: 70, tasks: 2, reqs: 6, met: 4, reg: 'risk' },
 ];
+
+const MODULE_ROUTES: Record<string, string> = {
+  gov: '/he/risk-governance', ops: '/he/operational-risk', out: '/he/outsourcing',
+  bcp: '/he/bcp', cgov: '/he/cyber-governance', cpro: '/he/cyber-protection',
+  cinc: '/he/cyber-incidents', credit: '/he/credit-risk', kri: '/he/kri',
+  events: '/he/event-reporting', reports: '/he/reports',
+};
 
 const TREND_DATA: Record<string, { month: string; score: number; benchmark: number }[]> = {
   all: [
@@ -416,7 +424,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Requirements met card */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+        <Link href="/he/regulation" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textDecoration: 'none', display: 'block', cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
             <Target size={13} color={C.accent} />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>עמידה בדרישות</span>
@@ -429,7 +437,7 @@ export default function DashboardPage() {
             <div style={{ width: `${compliancePct}%`, height: '100%', borderRadius: 6, background: C.accentGrad }} />
           </div>
           <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{compliancePct}% מולאו</div>
-        </div>
+        </Link>
 
         {/* Two stacked mini-cards */}
         <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 10 }}>
@@ -499,12 +507,15 @@ export default function DashboardPage() {
             {modules.map((m) => {
               const color = m.score >= 80 ? C.success : m.score >= 50 ? C.warning : C.danger;
               const Ic = m.Icon;
+              const href = MODULE_ROUTES[m.id] || '/he';
               return (
-                <div
+                <Link
                   key={m.id}
+                  href={href}
                   style={{
                     background: C.borderLight, borderRadius: 8, padding: 12,
                     border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all 0.1s',
+                    textDecoration: 'none', display: 'block',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
@@ -521,7 +532,7 @@ export default function DashboardPage() {
                     <span>{m.met}/{m.reqs} דרישות</span>
                     {m.tasks > 0 && <span>{m.tasks} משימות</span>}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
