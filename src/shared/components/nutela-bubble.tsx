@@ -10,18 +10,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 
-/* ═══ Color palette (V11) ═══ */
-const C = {
-  accent: '#4A8EC2',
-  accentLight: '#E8F4FA',
-  success: '#2E8B57',
-  border: '#E1E8EF',
-  borderLight: '#F0F3F7',
-  text: '#1A2332',
-  textSec: '#4A5568',
-  textMuted: '#8896A6',
-  surface: '#FFFFFF',
-};
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══ NuTeLa Avatar SVG — pixel-perfect V11 ═══ */
 function NuTelaAvatar({ size = 44, animate = true }: { size?: number; animate?: boolean }) {

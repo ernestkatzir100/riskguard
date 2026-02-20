@@ -20,29 +20,7 @@ import { ChartCard } from '@/shared/components/chart-card';
 import { ActivityFeed } from '@/shared/components/activity-feed';
 import { computeCompliance, scoreColor, MODULE_WEIGHTS } from '@/shared/lib/compliance-engine';
 
-/* ═══════════════════════════════════════════════
-   Exact V11 color palette
-   ═══════════════════════════════════════════════ */
-const C = {
-  navBg: '#1E2D3D',
-  accent: '#4A8EC2',
-  accentTeal: '#5BB8C9',
-  accentLight: '#E8F4FA',
-  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
-  success: '#2E8B57',
-  successBg: '#EFF8F2',
-  warning: '#C8922A',
-  warningBg: '#FDF8ED',
-  danger: '#C0392B',
-  dangerBg: '#FDF0EE',
-  bg: '#F5F7FA',
-  surface: '#FFFFFF',
-  text: '#1A2332',
-  textSec: '#4A5568',
-  textMuted: '#8896A6',
-  border: '#E1E8EF',
-  borderLight: '#F0F3F7',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══════════════════════════════════════════════
    Demo data — exact match to V11 JSX
@@ -395,7 +373,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ═══ KPI cards row ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="rg-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
         {/* Score ring card */}
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
           <ScoreRing score={overallScore} size={110} label="ציון עמידה" />
@@ -453,7 +431,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ═══ Charts row 1: Trend + Radar ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
         <ChartCard title="מגמת עמידה מול ממוצע שוק" Icon={TrendingUp}>
           <div style={{ display: 'flex', gap: 14, marginBottom: 8, justifyContent: 'flex-end' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'var(--font-assistant)', color: C.accent }}>
@@ -495,7 +473,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ═══ Charts row 2: Modules + Pie charts ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
         <ChartCard title="מודולים" Icon={Layers}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {modules.map((m) => {
@@ -570,7 +548,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ═══ Bottom row: Deadlines + Activity ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <ChartCard title="מועדים קרובים" Icon={Clock}>
           {filteredTasks.map((t, i) => {
             const s = TASK_STYLE[t.status];

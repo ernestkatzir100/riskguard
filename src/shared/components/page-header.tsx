@@ -10,11 +10,7 @@ import {
   Settings, CreditCard, Gauge, FileWarning, FileOutput, Briefcase, Bot,
 } from 'lucide-react';
 
-const C = {
-  accent: '#4A8EC2',
-  text: '#1A2332',
-  textMuted: '#8896A6',
-};
+import { C } from '@/shared/lib/design-tokens';
 
 type RouteInfo = { label: string; Icon: LucideIcon };
 

@@ -6,15 +6,7 @@ import {
   Shield, FileText, User, Activity,
 } from 'lucide-react';
 
-const C = {
-  accent: '#4A8EC2', accentTeal: '#5BB8C9',
-  accentLight: '#E8F4FA',
-  success: '#2E8B57', successBg: '#EFF8F2',
-  warning: '#C8922A', warningBg: '#FDF8ED',
-  danger: '#C0392B', dangerBg: '#FDF0EE',
-  surface: '#FFFFFF', text: '#1A2332', textSec: '#4A5568', textMuted: '#8896A6',
-  border: '#E1E8EF', borderLight: '#F0F3F7',
-};
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══ Incident Data ═══ */
 type TimelineStep = { label: string; date: string; done: boolean; note?: string };

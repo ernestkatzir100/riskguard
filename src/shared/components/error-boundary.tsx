@@ -8,15 +8,7 @@ import { AlertTriangle } from 'lucide-react';
  * Usage: wrap any module page with <ErrorBoundary>.
  */
 
-const C = {
-  danger: '#C0392B',
-  dangerBg: '#FDF0EE',
-  text: '#1A2332',
-  textMuted: '#8896A6',
-  border: '#E1E8EF',
-  surface: '#FFFFFF',
-  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 type ErrorBoundaryProps = {
   children: React.ReactNode;

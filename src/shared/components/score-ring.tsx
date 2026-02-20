@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const C = {
-  success: '#2E8B57',
-  warning: '#C8922A',
-  danger: '#C0392B',
-  text: '#1A2332',
-  textMuted: '#8896A6',
-  borderLight: '#F0F3F7',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 export function ScoreRing({
   score,

@@ -12,18 +12,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-/* ═══════════════════════════════════════════════
-   Exact V11 color palette
-   ═══════════════════════════════════════════════ */
-const C = {
-  navBg: '#1E2D3D',
-  navHover: '#2A3F52',
-  accent: '#4A8EC2',
-  accentTeal: '#5BB8C9',
-  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
-  textMuted: '#8896A6',
-  danger: '#C0392B',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══════════════════════════════════════════════
    Navigation structure — exact match to V11 JSX

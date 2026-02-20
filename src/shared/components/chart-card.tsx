@@ -1,11 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-const C = {
-  surface: '#FFFFFF',
-  border: '#E1E8EF',
-  text: '#1A2332',
-  accent: '#4A8EC2',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 export function ChartCard({
   title,

@@ -15,23 +15,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 
-/* ═══ Color palette (V11) ═══ */
-const C = {
-  accent: '#4A8EC2',
-  accentTeal: '#5BB8C9',
-  accentLight: '#E8F4FA',
-  success: '#2E8B57',
-  successBg: '#EFF8F2',
-  warning: '#C8922A',
-  warningBg: '#FDF8ED',
-  danger: '#C0392B',
-  surface: '#FFFFFF',
-  border: '#E1E8EF',
-  borderLight: '#F0F3F7',
-  text: '#1A2332',
-  textSec: '#4A5568',
-  textMuted: '#8896A6',
-};
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══ Demo Company ═══ */
 const COMPANY = { name: 'קרדיט-פיננס בע״מ' };

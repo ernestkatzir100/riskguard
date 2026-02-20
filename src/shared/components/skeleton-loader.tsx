@@ -5,10 +5,7 @@
  * Uses .skeleton class from globals.css for the shimmer animation.
  */
 
-const C = {
-  surface: '#FFFFFF',
-  border: '#E1E8EF',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 type SkeletonProps = {
   /** Number of rows to render */

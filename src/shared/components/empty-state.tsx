@@ -7,15 +7,7 @@ import { Inbox, Shield, BarChart3, FileText, Users, Zap, type LucideIcon } from 
  * Used per module when there's no data.
  */
 
-const C = {
-  accent: '#4A8EC2',
-  accentLight: '#E8F4FA',
-  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
-  text: '#1A2332',
-  textMuted: '#8896A6',
-  border: '#E1E8EF',
-  surface: '#FFFFFF',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 type EmptyStateProps = {
   /** Icon to display */

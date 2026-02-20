@@ -2,16 +2,7 @@
 
 import { BarChart3, CheckSquare, Handshake, Zap, Shield, FileText, Users, Lock, type LucideIcon } from 'lucide-react';
 
-/* ═══════════════════════════════════════════════
-   Color palette (matches V11)
-   ═══════════════════════════════════════════════ */
-const C = {
-  accent:     '#4A8EC2',
-  accentLight:'#E8F4FA',
-  text:       '#1A2332',
-  textMuted:  '#8896A6',
-  borderLight:'#F0F3F7',
-} as const;
+import { C } from '@/shared/lib/design-tokens';
 
 /* ═══════════════════════════════════════════════
    Global activity log — last 10 actions

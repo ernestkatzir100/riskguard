@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap&subset=hebrew');
 @import "tailwindcss";
 
 @theme {
@@ -29,6 +30,11 @@
   --color-text: #1A2332;
   --color-text-sec: #4A5568;
   --color-text-muted: #8896A6;
+}
+
+:root {
+  --font-rubik-fallback: 'Rubik', sans-serif;
+  --font-assistant-fallback: 'Assistant', sans-serif;
 }
 
 /* ═══ Base styles ═══ */
@@ -118,7 +124,7 @@ th,
   border-radius: 6px;
 }
 
-/* ═══ Responsive layout — F1 ═══ */
+/* ═══ Responsive layout ═══ */
 
 /* Tablet: ≤1024px — stack cards, compress padding */
 @media (max-width: 1024px) {
@@ -126,16 +132,17 @@ th,
     padding: 16px !important;
   }
 
-  /* Make all 2-col and 3-col grids single column */
-  [style*="gridTemplateColumns: '2fr 1fr'"],
-  [style*="gridTemplateColumns: '1fr 1fr'"],
-  [style*="gridTemplateColumns: '1fr 1fr 1fr'"] {
+  .rg-grid-2, .rg-grid-3 {
     grid-template-columns: 1fr !important;
   }
 }
 
 /* Mobile: ≤768px — collapse nav, full-width cards */
 @media (max-width: 768px) {
+  .rg-grid-2, .rg-grid-3, .rg-grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Tables scroll horizontally */
   table {
     display: block;

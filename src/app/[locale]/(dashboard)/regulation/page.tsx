@@ -6,19 +6,7 @@ import {
   Search, CheckSquare, Clock, X, FileText, AlertTriangle,
 } from 'lucide-react';
 
-/* ═══ Design System ═══ */
-const C = {
-  navBg: '#1E2D3D', navHover: '#2A3F52',
-  accent: '#4A8EC2', accentTeal: '#5BB8C9',
-  accentLight: '#E8F4FA', accentDark: '#3A7AAF',
-  accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
-  success: '#2E8B57', successBg: '#EFF8F2',
-  warning: '#C8922A', warningBg: '#FDF8ED',
-  danger: '#C0392B', dangerBg: '#FDF0EE',
-  bg: '#F5F7FA', surface: '#FFFFFF',
-  text: '#1A2332', textSec: '#4A5568', textMuted: '#8896A6',
-  border: '#E1E8EF', borderLight: '#F0F3F7',
-};
+import { C } from '@/shared/lib/design-tokens';
 
 const STATUS_LABELS = {
   met: { l: 'עומד', c: C.success, bg: C.successBg },
