@@ -5,6 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   // Hebrew-first, RTL default
+  // Fix @formatjs / intl-messageformat runtime error
+  transpilePackages: ['intl-messageformat', '@formatjs/icu-messageformat-parser'],
   // Supabase image domains
   images: {
     remotePatterns: [

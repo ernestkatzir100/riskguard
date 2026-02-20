@@ -39,6 +39,20 @@ body {
   background-color: var(--color-bg);
 }
 
+/* ═══ RTL defaults ═══ */
+input, textarea, select {
+  direction: rtl;
+  text-align: right;
+}
+
+table {
+  direction: rtl;
+}
+
+td, th {
+  text-align: right;
+}
+
 /* ═══ Typography — Rubik for headings & labels ═══ */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-rubik), 'Rubik', sans-serif;

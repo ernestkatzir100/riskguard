@@ -17,10 +17,10 @@ const C = {
 };
 
 /* ═══ BCP Data ═══ */
-const BCP_DOCUMENTS = [
-  { id: 'T10', name: 'תוכנית המשכיות עסקית (BCP)', version: 'v1.0', date: '15/08/2025', status: 'review' as const },
-  { id: 'T11', name: 'ניתוח השפעה עסקית (BIA)', version: '—', date: '—', status: 'missing' as const },
-  { id: 'T12', name: 'תוכנית Disaster Recovery', version: 'v1.0', date: '20/09/2025', status: 'review' as const },
+const BCP_DOCUMENTS: { id: string; name: string; version: string; date: string; status: 'approved' | 'draft' | 'review' | 'missing' }[] = [
+  { id: 'T10', name: 'תוכנית המשכיות עסקית (BCP)', version: 'v1.0', date: '15/08/2025', status: 'review' },
+  { id: 'T11', name: 'ניתוח השפעה עסקית (BIA)', version: '—', date: '—', status: 'missing' },
+  { id: 'T12', name: 'תוכנית Disaster Recovery', version: 'v1.0', date: '20/09/2025', status: 'review' },
 ];
 
 const DOC_STATUS = {

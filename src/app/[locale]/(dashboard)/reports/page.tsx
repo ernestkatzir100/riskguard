@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import {
-  FileOutput, FileText, Shield, Clock, CheckSquare, Calendar,
-  Search, Filter, X, BookOpen, Eye, Plus, Send, AlertTriangle,
+  FileOutput, FileText, CheckSquare, Calendar,
+  Plus,
 } from 'lucide-react';
 
 const C = {
@@ -68,7 +68,6 @@ const APPROVAL_WORKFLOWS = [
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'templates' | 'schedule' | 'approval'>('templates');
   const [filterCat, setFilterCat] = useState('הכל');
-  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
 
   const docCats = ['הכל', ...Array.from(new Set(DOC_TEMPLATES.map(d => d.cat)))];
   const filtered = filterCat === 'הכל' ? DOC_TEMPLATES : DOC_TEMPLATES.filter(d => d.cat === filterCat);

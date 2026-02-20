@@ -1,5 +1,6 @@
 import { TopNav } from '@/shared/components/top-nav';
 import { NuTelaBubble } from '@/shared/components/nutela-bubble';
+import { PageHeader } from '@/shared/components/page-header';
 
 export default function DashboardLayout({
   children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
           direction: 'rtl',
         }}
       >
+        <PageHeader />
         {children}
       </div>
       <NuTelaBubble />

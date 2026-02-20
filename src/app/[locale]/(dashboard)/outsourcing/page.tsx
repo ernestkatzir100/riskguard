@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import {
-  Handshake, AlertTriangle, Shield, FileText, ChevronLeft, CheckSquare,
-  Clock, X, BookOpen, ExternalLink, Star, Activity,
+  Handshake, Shield, CheckSquare,
+  X, BookOpen, Activity,
 } from 'lucide-react';
 
 const C = {
