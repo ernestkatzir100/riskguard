@@ -17,6 +17,8 @@ import {
 } from 'recharts';
 import { ScoreRing } from '@/shared/components/score-ring';
 import { ChartCard } from '@/shared/components/chart-card';
+import { ActivityFeed } from '@/shared/components/activity-feed';
+import { computeCompliance, scoreColor, MODULE_WEIGHTS } from '@/shared/lib/compliance-engine';
 
 /* ═══════════════════════════════════════════════
    Exact V11 color palette
@@ -145,20 +147,7 @@ const TASKS: TaskItem[] = [
   { title: 'מבחן חדירה שנתי', mod: 'הגנת סייבר', due: '30/06/2026', status: 'pending', reg: 'cyber' },
 ];
 
-type ActivityItem = {
-  action: string;
-  detail: string;
-  user: string;
-  time: string;
-  Icon: LucideIcon;
-};
-
-const ACTIVITIES: ActivityItem[] = [
-  { action: 'עדכן סיכון', detail: 'כשל מערכת הליבה — ציון 16', user: 'יוסי לוי', time: 'היום 14:32', Icon: BarChart3 },
-  { action: 'אישר מדיניות', detail: 'מדיניות הגנת סייבר v2.1', user: 'דנה כהן', time: 'היום 11:15', Icon: CheckSquare },
-  { action: 'הוסיף ספק', detail: 'דיגיפורם — דיגיטל', user: 'יוסי לוי', time: 'אתמול 16:40', Icon: Handshake },
-  { action: 'סגר אירוע', detail: 'אירוע סייבר #001', user: 'יוסי לוי', time: 'אתמול 09:22', Icon: Zap },
-];
+/* ACTIVITIES moved to shared/components/activity-feed.tsx */
 
 type PushItem = {
   id: string;
@@ -263,8 +252,13 @@ export default function DashboardPage() {
   const radar = RADAR_DATA[dashFilter];
   const overallScore = SCORES[dashFilter];
   const benchmarkScore = BENCHMARKS[dashFilter];
-  const totalReqs = modules.reduce((a, m) => a + m.reqs, 0);
-  const metReqs = modules.reduce((a, m) => a + m.met, 0);
+
+  // Use shared compliance engine for weighted score calculation
+  const complianceResult = computeCompliance(
+    modules.map((m) => ({ id: m.id, name: m.name, reqs: m.reqs, met: m.met, reg: m.reg, weight: MODULE_WEIGHTS[m.id] ?? 1 }))
+  );
+  const totalReqs = complianceResult.totalReqs;
+  const metReqs = complianceResult.totalMet;
   const compliancePct = totalReqs ? Math.round((metReqs / totalReqs) * 100) : 0;
   const filteredTasks = dashFilter === 'all' ? TASKS : TASKS.filter((t) => t.reg === dashFilter);
   const overdueCount = TASKS.filter((t) => t.status === 'overdue').length;
@@ -609,34 +603,7 @@ export default function DashboardPage() {
         </ChartCard>
 
         <ChartCard title="פעילות אחרונה" Icon={Activity}>
-          {ACTIVITIES.map((a, i) => {
-            const Ic = a.Icon;
-            return (
-              <div
-                key={i}
-                style={{
-                  display: 'flex', gap: 8, padding: '8px 0',
-                  borderBottom: i < ACTIVITIES.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-                }}
-              >
-                <div
-                  style={{
-                    width: 26, height: 26, borderRadius: 7,
-                    background: C.accentLight, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}
-                >
-                  <Ic size={12} color={C.accent} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: C.text, fontFamily: 'var(--font-assistant)' }}>
-                    <b>{a.user}</b> {a.action}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.textMuted }}>{a.detail} · {a.time}</div>
-                </div>
-              </div>
-            );
-          })}
+          <ActivityFeed limit={6} />
         </ChartCard>
       </div>
     </>
