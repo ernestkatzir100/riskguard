@@ -104,3 +104,54 @@ th,
   0%, 60%, 100% { opacity: 0.3; }
   30% { opacity: 1; }
 }
+
+/* ═══ Skeleton shimmer for loading states ═══ */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #F0F3F7 25%, #E1E8EF 50%, #F0F3F7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ═══ Responsive layout — F1 ═══ */
+
+/* Tablet: ≤1024px — stack cards, compress padding */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    padding: 16px !important;
+  }
+
+  /* Make all 2-col and 3-col grids single column */
+  [style*="gridTemplateColumns: '2fr 1fr'"],
+  [style*="gridTemplateColumns: '1fr 1fr'"],
+  [style*="gridTemplateColumns: '1fr 1fr 1fr'"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Mobile: ≤768px — collapse nav, full-width cards */
+@media (max-width: 768px) {
+  /* Tables scroll horizontally */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce heading sizes */
+  h1 { font-size: 18px !important; }
+  h2 { font-size: 16px !important; }
+}
+
+/* Small mobile: ≤480px */
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+}

@@ -1,6 +1,7 @@
 import { TopNav } from '@/shared/components/top-nav';
 import { NuTelaBubble } from '@/shared/components/nutela-bubble';
 import { PageHeader } from '@/shared/components/page-header';
+import { ErrorBoundary } from '@/shared/components/error-boundary';
 
 export default function DashboardLayout({
   children,
@@ -19,7 +20,9 @@ export default function DashboardLayout({
         }}
       >
         <PageHeader />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </div>
       <NuTelaBubble />
     </div>
