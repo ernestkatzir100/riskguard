@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import {
-  ShieldCheck, AlertTriangle, FileText, Clock, CheckSquare, X,
-  BookOpen, Activity, Shield, Sparkles, ChevronDown, ChevronRight,
+  ShieldCheck, AlertTriangle, FileText, Clock,
+  BookOpen, Activity, Shield, Sparkles,
 } from 'lucide-react';
 
 const C = {
@@ -65,7 +65,6 @@ const IMPACT_COLORS: Record<string, string> = { 'קריטי': C.danger, 'גבו�
 
 export default function BCPPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'bia' | 'dr'>('overview');
-  const [nutelaOpen, setNutelaOpen] = useState(false);
 
   const complianceScore = 45;
   const docApproved = BCP_DOCUMENTS.filter(d => d.status === 'approved').length;
