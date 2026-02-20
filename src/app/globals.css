@@ -64,3 +64,29 @@ th,
     transform: translateY(0);
   }
 }
+
+/* ═══ NuTeLa Animations ═══ */
+@keyframes nutelaFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes nutelaPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes nutelaSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes nutelaGlow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(123,97,255,0.3); }
+  50% { box-shadow: 0 4px 35px rgba(189,52,254,0.5); }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; }
+  30% { opacity: 1; }
+}

@@ -1,4 +1,5 @@
 import { TopNav } from '@/shared/components/top-nav';
+import { NuTelaBubble } from '@/shared/components/nutela-bubble';
 
 export default function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default function DashboardLayout({
       >
         {children}
       </div>
+      <NuTelaBubble />
     </div>
   );
 }
