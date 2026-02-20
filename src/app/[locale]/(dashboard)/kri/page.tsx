@@ -1,0 +1,415 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Gauge, Shield, TrendingUp, TrendingDown,
+  AlertTriangle, CheckCircle, AlertCircle,
+} from 'lucide-react';
+
+/* ═══════════════════════════════════════════════
+   V11 exact color palette
+   ═══════════════════════════════════════════════ */
+const C = {
+  accent: '#4A8EC2', accentTeal: '#5BB8C9',
+  accentLight: '#E8F4FA',
+  success: '#2E8B57', successBg: '#EFF8F2',
+  warning: '#C8922A', warningBg: '#FDF8ED',
+  danger: '#C0392B', dangerBg: '#FDF0EE',
+  surface: '#FFFFFF', text: '#1A2332', textSec: '#4A5568', textMuted: '#8896A6',
+  border: '#E1E8EF', borderLight: '#F0F3F7',
+} as const;
+
+/* ═══════════════════════════════════════════════
+   KRI Data
+   ═══════════════════════════════════════════════ */
+type KRI = {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  threshold: { green: number; yellow: number; red: number };
+  trend: number[];
+  cat: string;
+  reverse?: boolean;
+};
+
+const KRI_DATA: KRI[] = [
+  { id: 'KRI-01', name: 'יחס כשל אשראי (NPL Ratio)', value: 3.8, unit: '%', threshold: { green: 3, yellow: 5, red: 7 }, trend: [3.1, 3.3, 3.5, 3.6, 3.9, 3.8], cat: 'אשראי' },
+  { id: 'KRI-02', name: 'יחס הון מינימלי', value: 14.2, unit: '%', threshold: { green: 12, yellow: 10, red: 9 }, trend: [15.1, 14.8, 14.5, 14.3, 14.1, 14.2], cat: 'הון', reverse: true },
+  { id: 'KRI-03', name: 'זמן השבתה (שעות/חודש)', value: 2.5, unit: 'h', threshold: { green: 4, yellow: 8, red: 12 }, trend: [1.2, 0.8, 3.1, 1.5, 4.2, 2.5], cat: 'תפעולי' },
+  { id: 'KRI-04', name: 'אירועי אבטחה חודשיים', value: 12, unit: '', threshold: { green: 10, yellow: 20, red: 30 }, trend: [8, 6, 15, 11, 18, 12], cat: 'סייבר' },
+  { id: 'KRI-05', name: 'הלוואות באיחור 60+', value: 2.1, unit: '%', threshold: { green: 2, yellow: 4, red: 6 }, trend: [1.8, 1.9, 2.0, 2.2, 2.4, 2.1], cat: 'אשראי' },
+  { id: 'KRI-06', name: 'יחס ECL / חשיפה', value: 0.96, unit: '%', threshold: { green: 1, yellow: 2, red: 3 }, trend: [0.82, 0.85, 0.88, 0.91, 0.94, 0.96], cat: 'אשראי' },
+  { id: 'KRI-07', name: 'שיעור שימור לקוחות', value: 91, unit: '%', threshold: { green: 90, yellow: 85, red: 80 }, trend: [93, 92, 91.5, 91, 90.5, 91], cat: 'עסקי', reverse: true },
+  { id: 'KRI-08', name: 'תלונות לקוחות (חודשי)', value: 28, unit: '', threshold: { green: 20, yellow: 35, red: 50 }, trend: [18, 22, 25, 30, 32, 28], cat: 'עסקי' },
+];
+
+const CATEGORIES = ['הכל', 'אשראי', 'הון', 'תפעולי', 'סייבר', 'עסקי'];
+
+/* ═══════════════════════════════════════════════
+   Status helpers
+   ═══════════════════════════════════════════════ */
+type Status = 'green' | 'yellow' | 'red';
+
+function getStatus(kri: KRI): Status {
+  const { value, threshold, reverse } = kri;
+  if (reverse) {
+    if (value >= threshold.green) return 'green';
+    if (value >= threshold.yellow) return 'yellow';
+    return 'red';
+  }
+  if (value <= threshold.green) return 'green';
+  if (value <= threshold.yellow) return 'yellow';
+  return 'red';
+}
+
+const STATUS_CONFIG: Record<Status, { label: string; color: string; bg: string }> = {
+  green: { label: 'תקין', color: C.success, bg: C.successBg },
+  yellow: { label: 'אזהרה', color: C.warning, bg: C.warningBg },
+  red: { label: 'חריג', color: C.danger, bg: C.dangerBg },
+};
+
+/* ═══════════════════════════════════════════════
+   SVG Gauge component
+   ═══════════════════════════════════════════════ */
+function KRIGauge({ value, threshold, status, reverse }: {
+  value: number; threshold: { green: number; yellow: number; red: number };
+  status: Status; reverse: boolean;
+}) {
+  const r = 36;
+  const circumference = 2 * Math.PI * r;
+  const arcLength = circumference * 0.75; // 270 degrees
+
+  // Calculate fill ratio
+  const maxVal = reverse
+    ? threshold.green * 1.3
+    : threshold.red * 1.3;
+  const minVal = reverse
+    ? threshold.red * 0.7
+    : 0;
+  const ratio = Math.min(1, Math.max(0, (value - minVal) / (maxVal - minVal)));
+  const filledArc = arcLength * ratio;
+
+  return (
+    <svg width={80} height={80} viewBox="0 0 80 80" style={{ transform: 'rotate(135deg)' }}>
+      <circle
+        cx={40} cy={40} r={r}
+        fill="none"
+        stroke={C.borderLight}
+        strokeWidth={6}
+        strokeLinecap="round"
+        strokeDasharray={`${arcLength} ${circumference}`}
+      />
+      <circle
+        cx={40} cy={40} r={r}
+        fill="none"
+        stroke={STATUS_CONFIG[status].color}
+        strokeWidth={6}
+        strokeLinecap="round"
+        strokeDasharray={`${filledArc} ${circumference}`}
+      />
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   Mini Sparkline component
+   ═══════════════════════════════════════════════ */
+function Sparkline({ data, status }: { data: number[]; status: Status }) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const h = 30;
+  const w = 100;
+  const padding = 2;
+
+  const points = data.map((v, i) => {
+    const x = padding + (i / (data.length - 1)) * (w - 2 * padding);
+    const y = h - padding - ((v - min) / range) * (h - 2 * padding);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={STATUS_CONFIG[status].color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   KRI Dashboard Page
+   ═══════════════════════════════════════════════ */
+export default function KRIPage() {
+  const [filterCat, setFilterCat] = useState('הכל');
+
+  const filtered = filterCat === 'הכל' ? KRI_DATA : KRI_DATA.filter(k => k.cat === filterCat);
+
+  // Status counts
+  const greenCount = KRI_DATA.filter(k => getStatus(k) === 'green').length;
+  const yellowCount = KRI_DATA.filter(k => getStatus(k) === 'yellow').length;
+  const redCount = KRI_DATA.filter(k => getStatus(k) === 'red').length;
+
+  return (
+    <div style={{ direction: 'rtl' }}>
+      {/* ═══ Header ═══ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+        <div>
+          <h1 style={{
+            fontSize: 20, fontWeight: 700, color: C.text,
+            fontFamily: 'var(--font-rubik)', margin: '0 0 3px',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <Gauge size={20} color={C.accent} /> מדדי סיכון מפתח (KRI)
+            <span style={{
+              background: 'rgba(91,184,201,0.15)', color: C.accentTeal,
+              fontSize: 9, fontWeight: 700, padding: '2px 8px',
+              borderRadius: 4, fontFamily: 'var(--font-rubik)',
+              marginRight: 4,
+            }}>
+              PRO
+            </span>
+          </h1>
+          <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+            ניטור רציף של מדדי סיכון ביחס לספים מותרים
+          </p>
+        </div>
+      </div>
+
+      {/* ═══ Breach Alert Banner ═══ */}
+      {redCount > 0 && (
+        <div style={{
+          background: C.dangerBg, border: `1px solid ${C.danger}30`,
+          borderRadius: 10, padding: '10px 16px', marginBottom: 14,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <AlertTriangle size={16} color={C.danger} />
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: C.danger,
+            fontFamily: 'var(--font-rubik)',
+          }}>
+            {redCount} מדדים חריגים — נדרשת התייחסות מיידית
+          </span>
+        </div>
+      )}
+
+      {/* ═══ Summary Strip ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+        {[
+          { label: 'תקין', count: greenCount, color: C.success, bg: C.successBg, Icon: CheckCircle },
+          { label: 'אזהרה', count: yellowCount, color: C.warning, bg: C.warningBg, Icon: AlertCircle },
+          { label: 'חריג', count: redCount, color: C.danger, bg: C.dangerBg, Icon: AlertTriangle },
+        ].map((s) => (
+          <div key={s.label} style={{
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 10, padding: '14px 16px',
+            display: 'flex', alignItems: 'center', gap: 12,
+            borderTop: `3px solid ${s.color}`,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <s.Icon size={20} color={s.color} />
+            </div>
+            <div>
+              <div style={{
+                fontSize: 22, fontWeight: 800, color: s.color,
+                fontFamily: 'var(--font-rubik)',
+              }}>
+                {s.count}
+              </div>
+              <div style={{
+                fontSize: 11, color: C.textMuted,
+                fontFamily: 'var(--font-assistant)',
+              }}>
+                {s.label}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ═══ Category Filter ═══ */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>
+        {CATEGORIES.map(c => (
+          <button key={c} onClick={() => setFilterCat(c)} style={{
+            background: filterCat === c ? C.accent : C.surface,
+            color: filterCat === c ? 'white' : C.textSec,
+            border: `1px solid ${filterCat === c ? C.accent : C.border}`,
+            borderRadius: 6, padding: '5px 12px', fontSize: 11,
+            fontWeight: filterCat === c ? 600 : 400, cursor: 'pointer',
+            fontFamily: 'var(--font-rubik)',
+          }}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* ═══ KRI Cards Grid ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+        {filtered.map(kri => {
+          const status = getStatus(kri);
+          const cfg = STATUS_CONFIG[status];
+          const trendData = kri.trend;
+          const prev = trendData[trendData.length - 2];
+          const curr = trendData[trendData.length - 1];
+          const delta = curr - prev;
+          const deltaAbs = Math.abs(delta).toFixed(1);
+
+          // Determine if the trend direction is "good"
+          const isGoodDirection = kri.reverse
+            ? delta >= 0 // for reverse: going up is good
+            : delta <= 0; // for normal: going down is good
+
+          return (
+            <div key={kri.id} style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 12, overflow: 'hidden',
+              borderTop: `4px solid ${cfg.color}`,
+            }}>
+              <div style={{ padding: '16px 18px' }}>
+                {/* Card header: icon, id, category, status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={16} color={cfg.color} />
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, color: C.textMuted,
+                      fontFamily: 'var(--font-rubik)',
+                      background: C.borderLight, padding: '2px 7px', borderRadius: 4,
+                    }}>
+                      {kri.id}
+                    </span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 500, color: C.textSec,
+                      fontFamily: 'var(--font-rubik)',
+                      background: C.borderLight, padding: '2px 7px', borderRadius: 4,
+                    }}>
+                      {kri.cat}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: cfg.color,
+                    fontFamily: 'var(--font-rubik)',
+                    background: cfg.bg, padding: '3px 10px', borderRadius: 5,
+                  }}>
+                    {cfg.label}
+                  </span>
+                </div>
+
+                {/* KRI name */}
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: C.text,
+                  fontFamily: 'var(--font-rubik)', marginBottom: 14,
+                  lineHeight: 1.5,
+                }}>
+                  {kri.name}
+                </div>
+
+                {/* Gauge + Value section */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+                  {/* SVG Gauge */}
+                  <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+                    <KRIGauge
+                      value={kri.value}
+                      threshold={kri.threshold}
+                      status={status}
+                      reverse={!!kri.reverse}
+                    />
+                    {/* Center value */}
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                    }}>
+                      <div style={{
+                        fontSize: 18, fontWeight: 900, color: cfg.color,
+                        fontFamily: 'var(--font-rubik)', lineHeight: 1,
+                      }}>
+                        {kri.value}
+                      </div>
+                      {kri.unit && (
+                        <div style={{
+                          fontSize: 9, color: C.textMuted,
+                          fontFamily: 'var(--font-rubik)',
+                        }}>
+                          {kri.unit}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Thresholds */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 600, color: C.textMuted,
+                      fontFamily: 'var(--font-rubik)', marginBottom: 6,
+                    }}>
+                      ספי התראה
+                    </div>
+                    {[
+                      { label: 'ירוק', op: kri.reverse ? '≥' : '≤', val: kri.threshold.green, color: C.success },
+                      { label: 'צהוב', op: kri.reverse ? '≥' : '≤', val: kri.threshold.yellow, color: C.warning },
+                      { label: 'אדום', op: kri.reverse ? '<' : '>', val: kri.threshold.yellow, color: C.danger },
+                    ].map(t => (
+                      <div key={t.label} style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        marginBottom: 3,
+                      }}>
+                        <div style={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: t.color,
+                        }} />
+                        <span style={{
+                          fontSize: 10, color: C.textSec,
+                          fontFamily: 'var(--font-assistant)',
+                        }}>
+                          {t.label} {t.op} {t.val}{kri.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mini Sparkline */}
+                <div style={{ marginBottom: 10 }}>
+                  <Sparkline data={trendData} status={status} />
+                </div>
+
+                {/* Trend delta */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {delta > 0 ? (
+                      <TrendingUp size={14} color={isGoodDirection ? C.success : C.danger} />
+                    ) : delta < 0 ? (
+                      <TrendingDown size={14} color={isGoodDirection ? C.success : C.danger} />
+                    ) : null}
+                    <span style={{
+                      fontSize: 11, fontWeight: 600,
+                      color: isGoodDirection ? C.success : C.danger,
+                      fontFamily: 'var(--font-rubik)',
+                    }}>
+                      {delta > 0 ? '+' : ''}{deltaAbs}{kri.unit}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: 9, color: C.textMuted,
+                    fontFamily: 'var(--font-assistant)',
+                  }}>
+                    6 חודשים אחרונים
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
