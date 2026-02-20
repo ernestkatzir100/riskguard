@@ -1,0 +1,273 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Handshake, AlertTriangle, Shield, FileText, ChevronLeft, CheckSquare,
+  Clock, X, BookOpen, ExternalLink, Star, Activity,
+} from 'lucide-react';
+
+const C = {
+  accent: '#4A8EC2', accentTeal: '#5BB8C9',
+  accentLight: '#E8F4FA', accentGrad: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
+  success: '#2E8B57', successBg: '#EFF8F2',
+  warning: '#C8922A', warningBg: '#FDF8ED',
+  danger: '#C0392B', dangerBg: '#FDF0EE',
+  surface: '#FFFFFF', text: '#1A2332', textSec: '#4A5568', textMuted: '#8896A6',
+  border: '#E1E8EF', borderLight: '#F0F3F7',
+};
+
+/* ═══ Vendor Data — from V11 ═══ */
+type Assessment = { date: string; score: number; status: string; assessor: string };
+type Vendor = {
+  id: string; name: string; service: string; criticality: 'קריטי' | 'גבוה' | 'רגיל';
+  riskRating: number; sla: string; contractEnd: string; hasAlternative: boolean;
+  exitStrategy: boolean; certifications: string[]; assessments: Assessment[];
+  reg: string; section: string; reqId: string; contact: string; email: string;
+};
+
+const VENDORS: Vendor[] = [
+  {
+    id: 'V01', name: 'קלאוד-טק', service: 'שרתים + תשתית ענן', criticality: 'קריטי',
+    riskRating: 4, sla: '99.9%', contractEnd: '12/2026', hasAlternative: true,
+    exitStrategy: true, certifications: ['ISO 27001', 'SOC2 Type II'],
+    assessments: [
+      { date: '01/12/2025', score: 82, status: 'הושלם', assessor: 'יוסי לוי' },
+      { date: '15/12/2024', score: 78, status: 'הושלם', assessor: 'יוסי לוי' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-01', contact: 'אורי כהן', email: 'uri@cloudtek.co.il',
+  },
+  {
+    id: 'V02', name: 'פיננס-סופט', service: 'מערכת ניהול אשראי', criticality: 'קריטי',
+    riskRating: 5, sla: '99.5%', contractEnd: '06/2027', hasAlternative: false,
+    exitStrategy: false, certifications: ['ISO 27001'],
+    assessments: [
+      { date: '01/12/2025', score: 65, status: 'הושלם', assessor: 'יוסי לוי' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-01', contact: 'גלית שמש', email: 'galit@financesoft.co.il',
+  },
+  {
+    id: 'V03', name: 'סייבר-שילד', service: 'הגנת סייבר ו-SOC', criticality: 'גבוה',
+    riskRating: 3, sla: '99.8%', contractEnd: '03/2026', hasAlternative: true,
+    exitStrategy: true, certifications: ['ISO 27001', 'SOC2 Type II', 'CREST'],
+    assessments: [
+      { date: '15/11/2025', score: 91, status: 'הושלם', assessor: 'דנה כהן' },
+      { date: '10/11/2024', score: 88, status: 'הושלם', assessor: 'דנה כהן' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-03', contact: 'רועי לב', email: 'roi@cybershield.co.il',
+  },
+  {
+    id: 'V04', name: 'דאטה-בק', service: 'גיבוי ושחזור נתונים', criticality: 'גבוה',
+    riskRating: 3, sla: '99.9%', contractEnd: '09/2026', hasAlternative: false,
+    exitStrategy: false, certifications: ['SOC2 Type I'],
+    assessments: [
+      { date: '20/10/2025', score: 74, status: 'הושלם', assessor: 'יוסי לוי' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-03', contact: 'מאיר דוד', email: 'meir@databak.co.il',
+  },
+  {
+    id: 'V05', name: 'טלקום-פרו', service: 'תקשורת + אינטרנט', criticality: 'רגיל',
+    riskRating: 2, sla: '99.5%', contractEnd: '12/2025', hasAlternative: true,
+    exitStrategy: true, certifications: ['ISO 9001'],
+    assessments: [
+      { date: '01/09/2025', score: 80, status: 'הושלם', assessor: 'יוסי לוי' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-01', contact: 'שרה לוין', email: 'sara@telecompro.co.il',
+  },
+  {
+    id: 'V06', name: 'HR-סרוויס', service: 'שירותי שכר ומשאבי אנוש', criticality: 'רגיל',
+    riskRating: 2, sla: '99%', contractEnd: '12/2026', hasAlternative: true,
+    exitStrategy: true, certifications: ['ISO 27001'],
+    assessments: [
+      { date: '15/08/2025', score: 85, status: 'הושלם', assessor: 'יוסי לוי' },
+    ],
+    reg: '2024-10-2', section: '2(ב)(4)', reqId: 'OUT-05', contact: 'נועה ברק', email: 'noa@hrservice.co.il',
+  },
+];
+
+const RISK_LEVELS: Record<number, { label: string; color: string }> = { 1: { label: 'זניח', color: '#7CB5A0' }, 2: { label: 'נמוך', color: C.success }, 3: { label: 'בינוני', color: C.warning }, 4: { label: 'גבוה', color: '#E8875B' }, 5: { label: 'קריטי', color: C.danger } };
+const CRIT_COLORS = { 'קריטי': { c: C.danger, bg: C.dangerBg }, 'גבוה': { c: C.warning, bg: C.warningBg }, 'רגיל': { c: C.success, bg: C.successBg } };
+
+export default function OutsourcingPage() {
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [filterCrit, setFilterCrit] = useState<string>('הכל');
+
+  const filtered = filterCrit === 'הכל' ? VENDORS : VENDORS.filter(v => v.criticality === filterCrit);
+  const selected = selectedVendor ? VENDORS.find(v => v.id === selectedVendor) : null;
+
+  const criticalCount = VENDORS.filter(v => v.criticality === 'קריטי').length;
+  const noExitCount = VENDORS.filter(v => !v.exitStrategy).length;
+  const avgScore = Math.round(VENDORS.reduce((a, v) => a + (v.assessments[0]?.score || 0), 0) / VENDORS.length);
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Handshake size={20} color={C.accent} /> ניהול מיקור חוץ
+          </h1>
+          <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+            {VENDORS.length} ספקים · {criticalCount} קריטיים · {noExitCount} ללא אסטרטגיית יציאה
+          </p>
+        </div>
+        <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <BookOpen size={12} /> חוזר 2024-10-2 § 2(ב)(4)
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+        {[
+          { label: 'סה״כ ספקים', value: VENDORS.length, c: C.accent },
+          { label: 'ספקים קריטיים', value: criticalCount, c: C.danger },
+          { label: 'ציון הערכה ממוצע', value: `${avgScore}%`, c: avgScore >= 80 ? C.success : C.warning },
+          { label: 'ללא Exit Strategy', value: noExitCount, c: noExitCount > 0 ? C.danger : C.success },
+        ].map((kpi, i) => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: kpi.c, fontFamily: 'var(--font-rubik)' }}>{kpi.value}</div>
+            <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{kpi.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+        {['הכל', 'קריטי', 'גבוה', 'רגיל'].map(c => (
+          <button key={c} onClick={() => setFilterCrit(c)} style={{ background: filterCrit === c ? C.accent : C.surface, color: filterCrit === c ? 'white' : C.textSec, border: `1px solid ${filterCrit === c ? C.accent : C.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: filterCrit === c ? 600 : 400, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>{c}</button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 0 }}>
+        {/* Vendor List */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: selected ? '0 12px 12px 0' : 12, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>
+              <thead>
+                <tr style={{ background: C.borderLight, borderBottom: `2px solid ${C.border}` }}>
+                  {['ספק', 'שירות', 'קריטיות', 'דירוג סיכון', 'SLA', 'חוזה עד', 'חלופה', 'Exit'].map(h => (
+                    <th key={h} style={{ textAlign: 'right', padding: '9px 10px', fontWeight: 600, fontSize: 11, color: C.textSec, fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((v, i) => {
+                  const isSel = selectedVendor === v.id;
+                  const cc = CRIT_COLORS[v.criticality];
+                  const rl = RISK_LEVELS[v.riskRating];
+                  return (
+                    <tr key={v.id} onClick={() => setSelectedVendor(isSel ? null : v.id)} style={{
+                      borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer',
+                      background: isSel ? C.accentLight : i % 2 === 0 ? 'white' : '#FAFBFC',
+                      borderInlineEnd: isSel ? `3px solid ${C.accent}` : '3px solid transparent',
+                      transition: 'background 0.1s',
+                    }}>
+                      <td style={{ padding: '10px', fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>
+                        {v.name}
+                        <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 400, fontFamily: 'var(--font-assistant)' }}>{v.id}</div>
+                      </td>
+                      <td style={{ padding: '10px', color: C.textSec }}>{v.service}</td>
+                      <td style={{ padding: '10px' }}>
+                        <span style={{ background: cc.bg, color: cc.c, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>{v.criticality}</span>
+                      </td>
+                      <td style={{ padding: '10px' }}>
+                        <span style={{ background: `${rl.color}18`, color: rl.color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>{v.riskRating} — {rl.label}</span>
+                      </td>
+                      <td style={{ padding: '10px', fontFamily: 'var(--font-rubik)', fontWeight: 600 }}>{v.sla}</td>
+                      <td style={{ padding: '10px', fontSize: 11, fontFamily: 'var(--font-rubik)' }}>{v.contractEnd}</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        {v.hasAlternative ? <CheckSquare size={14} color={C.success} /> : <X size={14} color={C.danger} />}
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        {v.exitStrategy ? <CheckSquare size={14} color={C.success} /> : <X size={14} color={C.danger} />}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Detail Panel */}
+        {selected && (
+          <div style={{ width: 380, background: C.surface, borderInlineStart: `1px solid ${C.border}`, borderRadius: '12px 0 0 12px', padding: 20, overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>{selected.id}</span>
+              <button onClick={() => setSelectedVendor(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} color={C.textSec} /></button>
+            </div>
+
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 4 }}>{selected.name}</h3>
+            <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', marginBottom: 14 }}>{selected.service}</p>
+
+            {/* Tags */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+              <span style={{ background: CRIT_COLORS[selected.criticality].bg, color: CRIT_COLORS[selected.criticality].c, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>{selected.criticality}</span>
+              <span style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 9, fontWeight: 600, padding: '3px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>({selected.reg}, §{selected.section}, {selected.reqId})</span>
+            </div>
+
+            {/* Profile */}
+            <div style={{ background: C.borderLight, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              {[
+                { l: 'SLA', v: selected.sla },
+                { l: 'חוזה עד', v: selected.contractEnd },
+                { l: 'איש קשר', v: selected.contact },
+                { l: 'אימייל', v: selected.email },
+              ].map((f, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
+                  <span style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{f.l}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{f.v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Status indicators */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+              <div style={{ background: selected.exitStrategy ? C.successBg : C.dangerBg, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)', marginBottom: 4 }}>Exit Strategy</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: selected.exitStrategy ? C.success : C.danger, fontFamily: 'var(--font-rubik)' }}>
+                  {selected.exitStrategy ? 'קיימת' : 'חסרה'}
+                </div>
+              </div>
+              <div style={{ background: selected.hasAlternative ? C.successBg : C.dangerBg, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)', marginBottom: 4 }}>חלופה זמינה</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: selected.hasAlternative ? C.success : C.danger, fontFamily: 'var(--font-rubik)' }}>
+                  {selected.hasAlternative ? 'כן' : 'לא'}
+                </div>
+              </div>
+            </div>
+
+            {/* Certifications */}
+            <div style={{ marginBottom: 14 }}>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Shield size={12} color={C.accent} /> הסמכות ({selected.certifications.length})
+              </h4>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {selected.certifications.map((cert, i) => (
+                  <span key={i} style={{ background: C.accentLight, color: C.accent, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>{cert}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Assessment History */}
+            <div>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Activity size={12} color={C.warning} /> היסטוריית הערכות ({selected.assessments.length})
+              </h4>
+              {selected.assessments.map((a, i) => (
+                <div key={i} style={{ background: C.borderLight, borderRadius: 8, padding: '10px 12px', marginBottom: 6, border: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>{a.date}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: a.score >= 80 ? C.success : a.score >= 60 ? C.warning : C.danger, fontFamily: 'var(--font-rubik)' }}>{a.score}%</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)', marginTop: 2 }}>
+                    {a.assessor} · {a.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
