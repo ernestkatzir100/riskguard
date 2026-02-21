@@ -23,17 +23,17 @@ type KRI = {
 };
 
 const KRI_DATA: KRI[] = [
-  { id: 'KRI-01', name: 'יחס כשל אשראי (NPL Ratio)', value: 3.8, unit: '%', threshold: { green: 3, yellow: 5, red: 7 }, trend: [3.1, 3.3, 3.5, 3.6, 3.9, 3.8], cat: 'אשראי' },
-  { id: 'KRI-02', name: 'יחס הון מינימלי', value: 14.2, unit: '%', threshold: { green: 12, yellow: 10, red: 9 }, trend: [15.1, 14.8, 14.5, 14.3, 14.1, 14.2], cat: 'הון', reverse: true },
-  { id: 'KRI-03', name: 'זמן השבתה (שעות/חודש)', value: 2.5, unit: 'h', threshold: { green: 4, yellow: 8, red: 12 }, trend: [1.2, 0.8, 3.1, 1.5, 4.2, 2.5], cat: 'תפעולי' },
-  { id: 'KRI-04', name: 'אירועי אבטחה חודשיים', value: 12, unit: '', threshold: { green: 10, yellow: 20, red: 30 }, trend: [8, 6, 15, 11, 18, 12], cat: 'סייבר' },
-  { id: 'KRI-05', name: 'הלוואות באיחור 60+', value: 2.1, unit: '%', threshold: { green: 2, yellow: 4, red: 6 }, trend: [1.8, 1.9, 2.0, 2.2, 2.4, 2.1], cat: 'אשראי' },
-  { id: 'KRI-06', name: 'יחס ECL / חשיפה', value: 0.96, unit: '%', threshold: { green: 1, yellow: 2, red: 3 }, trend: [0.82, 0.85, 0.88, 0.91, 0.94, 0.96], cat: 'אשראי' },
-  { id: 'KRI-07', name: 'שיעור שימור לקוחות', value: 91, unit: '%', threshold: { green: 90, yellow: 85, red: 80 }, trend: [93, 92, 91.5, 91, 90.5, 91], cat: 'עסקי', reverse: true },
-  { id: 'KRI-08', name: 'תלונות לקוחות (חודשי)', value: 28, unit: '', threshold: { green: 20, yellow: 35, red: 50 }, trend: [18, 22, 25, 30, 32, 28], cat: 'עסקי' },
+  { id: 'KRI-01', name: 'שיעור NPL', value: 2.3, unit: '%', threshold: { green: 5, yellow: 7, red: 10 }, trend: [3.1, 2.9, 2.7, 2.5, 2.4, 2.3], cat: 'אשראי' },
+  { id: 'KRI-02', name: 'יחס הון', value: 14.2, unit: '%', threshold: { green: 12, yellow: 10, red: 9 }, trend: [13.5, 13.8, 14.0, 14.1, 14.0, 14.2], cat: 'הון', reverse: true },
+  { id: 'KRI-03', name: 'ריכוזיות אשראי', value: 68, unit: '%', threshold: { green: 60, yellow: 65, red: 75 }, trend: [62, 63, 64, 66, 67, 68], cat: 'אשראי' },
+  { id: 'KRI-04', name: 'כיסוי נזילות', value: 142, unit: '%', threshold: { green: 120, yellow: 110, red: 100 }, trend: [130, 135, 138, 140, 141, 142], cat: 'הון', reverse: true },
+  { id: 'KRI-05', name: 'שיעור אי-עמידה', value: 3.1, unit: '%', threshold: { green: 5, yellow: 8, red: 12 }, trend: [4.2, 3.8, 3.5, 3.3, 3.2, 3.1], cat: 'ציות' },
+  { id: 'KRI-06', name: 'ספקים קריטיים ללא אסטרטגיית יציאה', value: 2, unit: '', threshold: { green: 1, yellow: 3, red: 5 }, trend: [3, 3, 2, 2, 2, 2], cat: 'תפעולי' },
+  { id: 'KRI-07', name: 'אירועי סייבר פתוחים', value: 1, unit: '', threshold: { green: 0, yellow: 2, red: 5 }, trend: [2, 1, 3, 2, 1, 1], cat: 'סייבר' },
+  { id: 'KRI-08', name: 'עמידה ברגולציה', value: 62, unit: '%', threshold: { green: 80, yellow: 60, red: 40 }, trend: [50, 52, 55, 58, 60, 62], cat: 'ציות', reverse: true },
 ];
 
-const CATEGORIES = ['הכל', 'אשראי', 'הון', 'תפעולי', 'סייבר', 'עסקי'];
+const CATEGORIES = ['הכל', 'אשראי', 'הון', 'תפעולי', 'סייבר', 'ציות'];
 
 /* ═══════════════════════════════════════════════
    Status helpers
@@ -398,6 +398,35 @@ export default function KRIPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* ═══ Regulation Traceability ═══ */}
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: '16px 18px', marginTop: 14,
+      }}>
+        <h3 style={{
+          fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)',
+          margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          עקיבות רגולטורית
+        </h3>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { reg: '2024-10-2', section: '§3', req: 'KRI-01', desc: 'מדדי סיכון מפתח — דיווח רבעוני' },
+            { reg: '2022-10-9', section: '§7', req: 'KRI-07', desc: 'ניטור אירועי סייבר' },
+          ].map((t, i) => (
+            <div key={i} style={{
+              background: '#EDE9FE', border: '1px solid #D8C9FE', borderRadius: 8,
+              padding: '8px 14px', fontSize: 11, fontFamily: 'var(--font-assistant)', color: '#5B21B6',
+            }}>
+              <span style={{ fontWeight: 700, fontFamily: 'var(--font-rubik)' }}>
+                ({t.reg}, {t.section}, {t.req})
+              </span>
+              <span style={{ marginRight: 6, color: C.textSec }}>{t.desc}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

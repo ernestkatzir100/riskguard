@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, Check, ChevronLeft } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
@@ -102,6 +102,13 @@ export function NuTelaQuestionnaire({ onClose }: { onClose: () => void }) {
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [sliderValue, setSliderValue] = useState(3);
   const [fadeIn, setFadeIn] = useState(true);
+
+  useEffect(() => {
+    if (currentStep === 3) {
+      const timer = setTimeout(onClose, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, onClose]);
 
   const advanceTo = useCallback((step: number) => {
     setFadeIn(false);

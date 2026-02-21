@@ -7,9 +7,8 @@
 
 import {
   pgTable, pgEnum, uuid, text, varchar, integer, boolean, timestamp,
-  decimal, jsonb, bigserial, date, index, uniqueIndex, serial,
+  decimal, jsonb, bigserial, date, index, uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
 
 // ═══════════════════════════════════════════════
 // ENUMS
@@ -377,7 +376,9 @@ export const bcpCriticalFunctions = pgTable('bcp_critical_functions', {
   dependencies: text('dependencies'),
   recoveryProcedure: text('recovery_procedure'),
   priorityOrder: integer('priority_order'),
-});
+}, (t) => ({
+  tenantIdx: index('bcp_cf_tenant_idx').on(t.tenantId),
+}));
 
 export const bcpTests = pgTable('bcp_tests', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -390,7 +391,9 @@ export const bcpTests = pgTable('bcp_tests', {
   findings: text('findings'),
   lessonsLearned: text('lessons_learned'),
   nextTestDate: date('next_test_date'),
-});
+}, (t) => ({
+  tenantIdx: index('bcp_tests_tenant_idx').on(t.tenantId),
+}));
 
 // ═══════════════════════════════════════════════
 // 5.6 CYBER SECURITY TABLES
@@ -430,7 +433,9 @@ export const penTests = pgTable('pen_tests', {
   findingsCountLow: integer('findings_count_low').default(0),
   reportUploadId: uuid('report_upload_id'),
   nextTest: date('next_test'),
-});
+}, (t) => ({
+  tenantIdx: index('pt_tenant_idx').on(t.tenantId),
+}));
 
 export const vulnScans = pgTable('vuln_scans', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -442,7 +447,9 @@ export const vulnScans = pgTable('vuln_scans', {
   criticalFindings: integer('critical_findings').default(0),
   remediatedCount: integer('remediated_count').default(0),
   reportUploadId: uuid('report_upload_id'),
-});
+}, (t) => ({
+  tenantIdx: index('vs_tenant_idx').on(t.tenantId),
+}));
 
 // ═══════════════════════════════════════════════
 // 5.7 DOCUMENT & TASK TABLES
@@ -472,13 +479,16 @@ export const documents = pgTable('documents', {
 
 export const documentVersions = pgTable('document_versions', {
   id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   documentId: uuid('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
   versionNumber: varchar('version_number', { length: 20 }).notNull(),
   contentSnapshot: jsonb('content_snapshot').$type<Record<string, unknown>>(),
   changedBy: uuid('changed_by').references(() => users.id),
   changeSummary: text('change_summary'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => ({
+  tenantIdx: index('dv_tenant_idx').on(t.tenantId),
+}));
 
 export const tasks = pgTable('tasks', {
   id: uuid('id').defaultRandom().primaryKey(),

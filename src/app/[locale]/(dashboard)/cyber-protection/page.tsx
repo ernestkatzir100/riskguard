@@ -35,6 +35,21 @@ const CONTROLS: Control[] = [
   { id: 'CPR-13', name: 'הדרכת מודעות', status: 'partial', effectiveness: 50, lastCheck: '09/2025' },
   { id: 'CPR-14', name: 'ניהול תצורה', status: 'active', effectiveness: 72, lastCheck: '11/2025' },
   { id: 'CPR-15', name: 'בקרת שינויים', status: 'active', effectiveness: 80, lastCheck: '12/2025' },
+  { id: 'CPR-16', name: 'הגנה על Wi-Fi', status: 'active' as ControlStatus, effectiveness: 82, lastCheck: '01/2026' },
+  { id: 'CPR-17', name: 'ניטור DNS', status: 'active' as ControlStatus, effectiveness: 76, lastCheck: '12/2025' },
+  { id: 'CPR-18', name: 'Web Application Firewall (WAF)', status: 'active' as ControlStatus, effectiveness: 88, lastCheck: '02/2026' },
+  { id: 'CPR-19', name: 'DLP — מניעת דליפת מידע', status: 'partial' as ControlStatus, effectiveness: 58, lastCheck: '11/2025' },
+  { id: 'CPR-20', name: 'ניהול פאצ\'ים (Patch Mgmt)', status: 'active' as ControlStatus, effectiveness: 70, lastCheck: '01/2026' },
+  { id: 'CPR-21', name: 'בידוד רשתות (Segmentation)', status: 'active' as ControlStatus, effectiveness: 85, lastCheck: '02/2026' },
+  { id: 'CPR-22', name: 'גיבוי מוצפן', status: 'active' as ControlStatus, effectiveness: 92, lastCheck: '02/2026' },
+  { id: 'CPR-23', name: 'הגנה על API', status: 'partial' as ControlStatus, effectiveness: 55, lastCheck: '10/2025' },
+  { id: 'CPR-24', name: 'סריקת קוד (SAST)', status: 'partial' as ControlStatus, effectiveness: 45, lastCheck: '09/2025' },
+  { id: 'CPR-25', name: 'ניטור פעילות משתמשים (UEBA)', status: 'active' as ControlStatus, effectiveness: 72, lastCheck: '01/2026' },
+  { id: 'CPR-26', name: 'Threat Intelligence', status: 'active' as ControlStatus, effectiveness: 68, lastCheck: '12/2025' },
+  { id: 'CPR-27', name: 'Incident Response Automation', status: 'partial' as ControlStatus, effectiveness: 50, lastCheck: '11/2025' },
+  { id: 'CPR-28', name: 'Physical Security', status: 'active' as ControlStatus, effectiveness: 80, lastCheck: '01/2026' },
+  { id: 'CPR-29', name: 'Secure Development Lifecycle', status: 'partial' as ControlStatus, effectiveness: 42, lastCheck: '10/2025' },
+  { id: 'CPR-30', name: 'Third-Party Risk Monitoring', status: 'active' as ControlStatus, effectiveness: 65, lastCheck: '12/2025' },
 ];
 
 const STATUS_MAP: Record<ControlStatus, { label: string; color: string; bg: string }> = {
@@ -189,7 +204,7 @@ export default function CyberProtectionPage() {
                 <Shield size={14} color={C.accent} /> בקרות סייבר ({CONTROLS.length}/{totalControls})
               </span>
               <span style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
-                מציג 15 מתוך 30 בקרות
+                מציג 30 מתוך 30 בקרות
               </span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>

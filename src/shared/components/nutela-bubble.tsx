@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { NuTelaQuestionnaire } from '@/shared/components/nutela-questionnaire';
 
 /* ═══ NuTeLa Avatar SVG — pixel-perfect V11 ═══ */
 function NuTelaAvatar({ size = 44, animate = true }: { size?: number; animate?: boolean }) {
@@ -139,7 +140,7 @@ const quickActions = [
 ];
 
 /* ═══ NuTeLa Panel ═══ */
-function NuTelaPanel({ onClose }: { onClose: () => void }) {
+function NuTelaPanel({ onClose, onOpenQuestionnaire }: { onClose: () => void; onOpenQuestionnaire?: () => void }) {
   const [typing, setTyping] = useState(true);
   const [input, setInput] = useState('');
   const lines = NUTELA_TIPS.generic.split('\n').filter(Boolean);
@@ -480,6 +481,7 @@ function NuTelaPanel({ onClose }: { onClose: () => void }) {
                       transition: 'all 0.15s',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     }}
+                    onClick={() => onOpenQuestionnaire?.()}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = qa.color;
                       e.currentTarget.style.background = `${qa.color}08`;
@@ -599,6 +601,13 @@ function NuTelaPanel({ onClose }: { onClose: () => void }) {
 /* ═══ NuTeLa Floating Bubble — main export ═══ */
 export function NuTelaBubble() {
   const [open, setOpen] = useState(false);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+
+  useEffect(() => {
+    const handler = () => { setOpen(false); setShowQuestionnaire(true); };
+    window.addEventListener('nutela:open-questionnaire', handler);
+    return () => window.removeEventListener('nutela:open-questionnaire', handler);
+  }, []);
 
   return (
     <>
@@ -664,7 +673,12 @@ export function NuTelaBubble() {
       )}
 
       {/* Panel */}
-      {open && <NuTelaPanel onClose={() => setOpen(false)} />}
+      {open && <NuTelaPanel onClose={() => setOpen(false)} onOpenQuestionnaire={() => { setOpen(false); setShowQuestionnaire(true); }} />}
+
+      {/* NuTeLa Questionnaire Modal */}
+      {showQuestionnaire && (
+        <NuTelaQuestionnaire onClose={() => setShowQuestionnaire(false)} />
+      )}
     </>
   );
 }

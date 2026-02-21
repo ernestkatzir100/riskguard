@@ -18,7 +18,7 @@ import {
 import { ScoreRing } from '@/shared/components/score-ring';
 import { ChartCard } from '@/shared/components/chart-card';
 import { ActivityFeed } from '@/shared/components/activity-feed';
-import { computeCompliance, scoreColor, MODULE_WEIGHTS } from '@/shared/lib/compliance-engine';
+import { computeCompliance, MODULE_WEIGHTS } from '@/shared/lib/compliance-engine';
 
 import { C } from '@/shared/lib/design-tokens';
 
@@ -183,6 +183,7 @@ function AgentPushCard({ item }: { item: PushItem }) {
   const p = PRIO_COLORS[item.priority];
   return (
     <div
+      onClick={() => window.dispatchEvent(new Event('nutela:open-questionnaire'))}
       style={{
         background: 'white',
         border: `1px solid ${C.border}`,

@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import {
   Shield, BookOpen, CheckSquare,
-  Phone, Mail, Award, User, FileText, Sparkles,
+  Phone, Mail, Award, User, FileText,
   ChevronDown, ChevronRight,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ScoreRing } from '@/shared/components/score-ring';
 
 /* ═══════════════════════════════════════════════
    Data
@@ -17,7 +18,7 @@ type VersionEntry = { version: string; date: string; note: string; author: strin
 type Policy = {
   id: string;
   name: string;
-  status: 'approved' | 'draft';
+  status: 'approved' | 'draft' | 'expired';
   version: string;
   boardApproval: string;
   expiry: string;
@@ -47,6 +48,18 @@ const POLICIES: Policy[] = [
     expiry: '30/06/2026',
     history: [],
   },
+  {
+    id: 'POL-03',
+    name: 'מדיניות אבטחת מידע 2024',
+    status: 'expired',
+    version: '2.0',
+    boardApproval: '10/01/2024',
+    expiry: '31/12/2025',
+    history: [
+      { version: 'v2.0', date: '10/01/2024', note: 'עדכון שנתי', author: 'דנה כהן' },
+      { version: 'v1.0', date: '15/02/2023', note: 'גרסה ראשונה', author: 'דנה כהן' },
+    ],
+  },
 ];
 
 const OFFICER = {
@@ -62,6 +75,7 @@ const OFFICER = {
 const POLICY_STATUS = {
   approved: { l: 'מאושר', c: C.success, bg: C.successBg },
   draft: { l: 'טיוטה', c: C.warning, bg: C.warningBg },
+  expired: { l: 'פג תוקף', c: C.danger, bg: C.dangerBg },
 };
 
 /* ═══════════════════════════════════════════════
@@ -89,6 +103,7 @@ export default function RiskGovernancePage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ScoreRing score={78} size={80} label="שלמות ממשל" />
           <div style={{ background: complianceScore >= 70 ? C.successBg : C.warningBg, color: complianceScore >= 70 ? C.success : C.warning, fontSize: 13, fontWeight: 700, padding: '6px 14px', borderRadius: 8, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <CheckSquare size={14} /> {complianceScore}% עמידה
           </div>
@@ -120,20 +135,29 @@ export default function RiskGovernancePage() {
         ))}
       </div>
 
-      {/* ═══ NuTeLa Inline Panel ═══ */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.08), rgba(189,52,254,0.05))', border: '1px solid rgba(123,97,255,0.2)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #7B61FF, #BD34FE)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Sparkles size={18} color="white" />
+      {/* ═══ NuTeLa Alert ═══ */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(123,97,255,0.06), rgba(0,212,255,0.06))',
+        border: '1px solid rgba(123,97,255,0.15)',
+        borderRadius: 12, padding: '12px 16px', marginBottom: 14,
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: 'linear-gradient(135deg, #7B61FF, #BD34FE)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, flexShrink: 0,
+        }}>
+          🥚
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#7B61FF', fontFamily: 'var(--font-rubik)', marginBottom: 2 }}>NuTeLa</div>
-          <div style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>
-            מדיניות הסיכונים תפוג בעוד 30 יום. רוצה שאכין טיוטה מעודכנת?
-          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>
+            מדיניות הסיכונים תפוג בעוד 30 יום
+          </span>
+          <span style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)', display: 'block' }}>
+            NuTeLa · יש לעדכן את מדיניות ניהול הסיכונים לפני תום התוקף
+          </span>
         </div>
-        <button style={{ background: 'linear-gradient(135deg, #7B61FF, #BD34FE)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>
-          הכן טיוטה
-        </button>
       </div>
 
       {/* ═══ Main Content Grid ═══ */}

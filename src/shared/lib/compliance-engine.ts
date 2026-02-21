@@ -26,17 +26,14 @@ export type ScoreResult = {
 
 /** Default module weights — higher = more ISA emphasis */
 export const MODULE_WEIGHTS: Record<string, number> = {
-  gov:    3,   // ממשל סיכונים — core governance
-  ops:    2,   // סיכון תפעולי
-  out:    1.5, // מיקור חוץ
-  bcp:    2,   // המשכיות עסקית
-  cgov:   2.5, // ממשל סייבר
-  cpro:   2.5, // הגנת סייבר
-  cinc:   2,   // אירועי סייבר
-  credit: 2,   // סיכון אשראי
-  kri:    1.5, // מדדי סיכון
-  events: 1,   // דיווח אירועים
-  reports: 1,  // דוחות
+  gov:     15,  // ממשל סיכונים
+  ops:     20,  // סיכון תפעולי
+  out:     10,  // מיקור חוץ
+  bcp:     10,  // המשכיות עסקית
+  cgov:    15,  // ממשל סייבר
+  cpro:    15,  // הגנת סייבר
+  cinc:    10,  // אירועי סייבר
+  reports: 5,   // דוחות
 };
 
 const COLORS = {

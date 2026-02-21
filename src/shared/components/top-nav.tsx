@@ -214,6 +214,13 @@ function NavDropdown({
               >
                 <Ic size={14} strokeWidth={active ? 2.2 : 1.8} />
                 <span style={{ flex: 1 }}>{item.label}</span>
+                {isPro && (
+                  <span style={{
+                    fontSize: 8, fontWeight: 700, color: '#B0A4E8',
+                    background: 'rgba(124,111,208,0.15)', padding: '1px 5px',
+                    borderRadius: 3, fontFamily: 'var(--font-rubik)',
+                  }}>PRO</span>
+                )}
               </Link>
             );
           })}

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ScoreRing } from '@/shared/components/score-ring';
 
 /* ═══ Incident Data ═══ */
 type TimelineStep = { label: string; date: string; done: boolean; note?: string };
@@ -109,6 +110,9 @@ export default function CyberIncidentsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ScoreRing score={80} size={60} label="ציון ציות" />
+          </div>
           <div style={{ background: '#EDE9FE', color: '#7C3AED', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <BookOpen size={12} /> חוזר 2022-10-9 §7-8
           </div>

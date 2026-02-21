@@ -11,6 +11,12 @@ import {
 
 import { C } from '@/shared/lib/design-tokens';
 
+const SPEC_KPIS = [
+  { label: 'שיעור NPL', value: '2.3%', color: '#2E8B57' },
+  { label: 'יחס הון (CAR)', value: '14.2%', color: '#2E8B57' },
+  { label: 'תיק אשראי', value: '₪85M', color: '#4A8EC2' },
+];
+
 /* ═══════════════════════════════════════════════
    Credit Portfolio Data
    ═══════════════════════════════════════════════ */
@@ -111,6 +117,19 @@ export default function CreditRiskPage() {
             ניהול תיק אשראי, ריכוזיות, הפרשות ECL, ניתוח Vintage
           </p>
         </div>
+      </div>
+
+      {/* ═══ Spec KPI Strip ═══ */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+        {SPEC_KPIS.map((kpi, i) => (
+          <div key={i} style={{
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 8, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: kpi.color, fontFamily: 'var(--font-rubik)' }}>{kpi.value}</span>
+            <span style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{kpi.label}</span>
+          </div>
+        ))}
       </div>
 
       {/* ═══ KPI Row ═══ */}
@@ -480,6 +499,43 @@ export default function CreditRiskPage() {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* ═══ Regulation Traceability ═══ */}
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: '16px 18px', marginTop: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <span style={{
+            background: '#EDE9FE', color: '#7C3AED', fontSize: 11, fontWeight: 600,
+            padding: '3px 10px', borderRadius: 6, fontFamily: 'var(--font-rubik)',
+          }}>
+            חוזר אשראי
+          </span>
+          <h3 style={{
+            fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)',
+            margin: 0,
+          }}>
+            עקיבות רגולטורית
+          </h3>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { reg: 'חוזר אשראי', section: '§2', req: 'CR-01', desc: 'דיווח שיעורי NPL' },
+            { reg: 'חוזר אשראי', section: '§4', req: 'CR-02', desc: 'יחס הלימות הון' },
+          ].map((t, i) => (
+            <div key={i} style={{
+              background: '#EDE9FE', border: '1px solid #D8C9FE', borderRadius: 8,
+              padding: '8px 14px', fontSize: 11, fontFamily: 'var(--font-assistant)', color: '#5B21B6',
+            }}>
+              <span style={{ fontWeight: 700, fontFamily: 'var(--font-rubik)' }}>
+                ({t.reg}, {t.section}, {t.req})
+              </span>
+              <span style={{ marginRight: 6, color: '#4A5568' }}>{t.desc}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
