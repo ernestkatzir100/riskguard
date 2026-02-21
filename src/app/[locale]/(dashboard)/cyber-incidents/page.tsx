@@ -8,7 +8,7 @@ import {
 
 import { C } from '@/shared/lib/design-tokens';
 import { ScoreRing } from '@/shared/components/score-ring';
-import { getCyberIncidents, createCyberIncident, updateCyberIncident } from '@/app/actions/cyber';
+import { getCyberIncidents, createCyberIncident } from '@/app/actions/cyber';
 import { FormModal } from '@/shared/components/form-modal';
 import { IncidentForm } from '@/shared/components/forms/incident-form';
 

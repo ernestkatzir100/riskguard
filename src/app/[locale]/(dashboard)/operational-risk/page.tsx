@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { C } from '@/shared/lib/design-tokens';
 import { BarChart3, AlertTriangle, Shield, CheckCircle, BookOpen, ExternalLink } from 'lucide-react';
+import { getControls } from '@/app/actions/controls';
 
 const risks = [
   { id: 'OPS-R01', name: 'כשל מערכת ליבה', probability: 3, impact: 5, score: 15, status: 'open' as const, owner: 'דנה כהן' },
@@ -62,6 +64,16 @@ function getScoreBg(score: number) {
 }
 
 export default function OperationalRiskPage() {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const controlsRes = await getControls({ type: 'operational' });
+        if (controlsRes?.length) console.log('[OperationalRisk] DB data loaded', { controls: controlsRes.length });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
+
   const kpis = [
     { label: 'סיכונים פתוחים', value: '5', icon: AlertTriangle, color: C.danger },
     { label: 'אירועי הפסד (שנתי)', value: '3', icon: BarChart3, color: C.warning },

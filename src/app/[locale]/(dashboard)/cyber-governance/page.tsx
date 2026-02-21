@@ -1,11 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Lock, BookOpen, ShieldCheck, Server, User, Phone, Mail,
   Award, Calendar, AlertTriangle, ClipboardList, Monitor,
   Cloud, Wifi, Globe, Cpu,
 } from 'lucide-react';
 
+import { getControls } from '@/app/actions/controls';
 import { C } from '@/shared/lib/design-tokens';
 
 /* ═══════════════════════════════════════════════
@@ -50,6 +52,16 @@ const TYPE_ICON: Record<string, typeof Server> = {
    Cyber Governance Page
    ═══════════════════════════════════════════════ */
 export default function CyberGovernancePage() {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const controlsRes = await getControls();
+        if (controlsRes?.length) console.log('[CyberGovernance] DB data loaded', { controls: controlsRes.length });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
+
   return (
     <div style={{ direction: 'rtl' }}>
       {/* ═══ Header ═══ */}

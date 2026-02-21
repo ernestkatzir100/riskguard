@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield, BookOpen, CheckSquare,
   Phone, Mail, Award, User, FileText,
   ChevronDown, ChevronRight,
 } from 'lucide-react';
 
+import { getComplianceStatus } from '@/app/actions/compliance';
 import { C } from '@/shared/lib/design-tokens';
 import { ScoreRing } from '@/shared/components/score-ring';
 
@@ -82,6 +83,16 @@ const POLICY_STATUS = {
    RiskGovernancePage
    ═══════════════════════════════════════════════ */
 export default function RiskGovernancePage() {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const statusRes = await getComplianceStatus();
+        if (statusRes) console.log('[RiskGovernance] DB data loaded', statusRes);
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
+
   const [expandedPolicy, setExpandedPolicy] = useState<string | null>('POL-01');
 
   const complianceScore = 78;

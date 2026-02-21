@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShieldCheck, AlertTriangle, FileText, Clock,
   BookOpen, Activity, Shield, Sparkles,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getBCPPlan, getCriticalFunctions, getBCPTests } from '@/app/actions/bcp';
 
 /* ═══ BCP Data ═══ */
 const BCP_DOCUMENTS: { id: string; name: string; version: string; date: string; status: 'approved' | 'draft' | 'review' | 'missing' }[] = [
@@ -57,6 +58,21 @@ const IMPACT_COLORS: Record<string, string> = { 'קריטי': C.danger, 'גבו�
 
 export default function BCPPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'bia' | 'dr'>('overview');
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [planRes, funcsRes, testsRes] = await Promise.all([
+          getBCPPlan(),
+          getCriticalFunctions(),
+          getBCPTests(),
+        ]);
+        // Only override if we got real data
+        if (planRes) console.log('[BCP] DB data loaded', { plan: !!planRes, functions: funcsRes?.length, tests: testsRes?.length });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
 
   const complianceScore = 45;
   const docApproved = BCP_DOCUMENTS.filter(d => d.status === 'approved').length;

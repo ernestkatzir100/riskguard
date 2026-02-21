@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getBoardMeetings, createBoardMeeting, getBoardDecisions, createBoardDecision, updateDecisionStatus } from '@/app/actions/board';
+import { getBoardMeetings, createBoardMeeting } from '@/app/actions/board';
 import { FormModal } from '@/shared/components/form-modal';
 import { MeetingForm } from '@/shared/components/forms/meeting-form';
 

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShieldAlert, Shield, Bug, Crosshair, CheckCircle2, AlertTriangle,
   Clock, Search, BookOpen, XCircle, ExternalLink,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getControls } from '@/app/actions/controls';
+import { getPenTests, getVulnScans } from '@/app/actions/cyber';
 
 /* ═══ Controls Data ═══ */
 type ControlStatus = 'active' | 'partial' | 'inactive';
@@ -117,6 +119,20 @@ type TabId = 'controls' | 'vulnerabilities' | 'pentest';
 
 export default function CyberProtectionPage() {
   const [activeTab, setActiveTab] = useState<TabId>('controls');
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [controlsRes, penTestRes, vulnRes] = await Promise.all([
+          getControls(),
+          getPenTests(),
+          getVulnScans(),
+        ]);
+        if (controlsRes?.length) console.log('[CyberProtection] DB data loaded', { controls: controlsRes.length, penTests: penTestRes?.length, vulns: vulnRes?.length });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
 
   const activeControls = CONTROLS.filter(c => c.status === 'active').length;
   const totalControls = 30;

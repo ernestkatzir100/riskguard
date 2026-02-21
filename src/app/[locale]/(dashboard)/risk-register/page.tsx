@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getRisks, createRisk, updateRisk, deleteRisk } from '@/app/actions/risks';
-import { getControls, createControl } from '@/app/actions/controls';
+import { getRisks, createRisk } from '@/app/actions/risks';
 import { FormModal } from '@/shared/components/form-modal';
 import { RiskForm } from '@/shared/components/forms/risk-form';
 

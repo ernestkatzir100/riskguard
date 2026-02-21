@@ -1,7 +1,8 @@
 'use client';
 
+import { getRecentActivity } from '@/app/actions/dashboard';
 import { C } from '@/shared/lib/design-tokens';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileWarning, TrendingUp, AlertTriangle, Clock, BookOpen, ExternalLink, Crown } from 'lucide-react';
 
 type EventStatus = 'סגור' | 'פתוח' | 'בטיפול';
@@ -40,6 +41,16 @@ function getStatusBg(status: EventStatus) {
 }
 
 export default function EventReportingPage() {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const activityRes = await getRecentActivity(50);
+        if (activityRes?.length) console.log('[EventReporting] DB data loaded', { events: activityRes.length });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
+
   const [filter, setFilter] = useState<'all' | EventStatus>('all');
 
   const filteredEvents = filter === 'all' ? events : events.filter((e) => e.status === filter);

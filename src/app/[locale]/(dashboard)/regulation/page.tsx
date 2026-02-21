@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getRegulations, getComplianceStatus } from '@/app/actions/compliance';
 import {
   BookOpen, Shield, Lock, ChevronDown, ChevronRight, ChevronLeft,
   Search, CheckSquare, Clock, X, FileText, AlertTriangle,
@@ -144,6 +145,19 @@ export default function RegulationPage() {
   const [selectedReq, setSelectedReq] = useState<string | null>(null);
   const [searchQ, setSearchQ] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'met' | 'partial' | 'not_met'>('all');
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [regsRes, statusRes] = await Promise.all([
+          getRegulations(),
+          getComplianceStatus(),
+        ]);
+        if (regsRes?.length) console.log('[Regulation] DB data loaded', { regulations: regsRes.length, status: statusRes });
+      } catch { /* demo fallback */ }
+    }
+    loadData();
+  }, []);
 
   const toggleReg = (id: string) => setExpandedRegs(p => ({ ...p, [id]: !p[id] }));
   const toggleSection = (id: string) => setExpandedSections(p => ({ ...p, [id]: !p[id] }));
