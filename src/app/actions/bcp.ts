@@ -1,0 +1,40 @@
+'use server';
+import { db } from '@/db';
+import { bcpPlans, bcpCriticalFunctions, bcpTests } from '@/db/schema';
+import { getCurrentUser } from '@/shared/lib/auth';
+import { logAction } from '@/shared/lib/audit';
+import { updateBCPPlanSchema, createBCPTestSchema } from '@/shared/lib/validators';
+import { eq, desc } from 'drizzle-orm';
+
+export async function getBCPPlan() {
+  const user = await getCurrentUser();
+  const [plan] = await db.select().from(bcpPlans).where(eq(bcpPlans.tenantId, user.tenant_id)).orderBy(desc(bcpPlans.createdAt)).limit(1);
+  return plan ?? null;
+}
+
+export async function getCriticalFunctions() {
+  const user = await getCurrentUser();
+  return db.select().from(bcpCriticalFunctions).where(eq(bcpCriticalFunctions.tenantId, user.tenant_id)).orderBy(bcpCriticalFunctions.priorityOrder);
+}
+
+export async function getBCPTests() {
+  const user = await getCurrentUser();
+  return db.select().from(bcpTests).where(eq(bcpTests.tenantId, user.tenant_id)).orderBy(desc(bcpTests.testDate));
+}
+
+export async function updateBCPPlan(id: string, data: unknown) {
+  const user = await getCurrentUser();
+  const parsed = updateBCPPlanSchema.parse(data);
+  const [updated] = await db.update(bcpPlans).set(parsed).where(eq(bcpPlans.id, id)).returning();
+  if (!updated) throw new Error('BCP Plan not found');
+  await logAction({ action: 'bcp_plan.updated', entity_type: 'bcp_plan', entity_id: id, user_id: user.id, tenant_id: user.tenant_id, details: parsed as Record<string, unknown> });
+  return updated;
+}
+
+export async function createBCPTest(data: unknown) {
+  const user = await getCurrentUser();
+  const parsed = createBCPTestSchema.parse(data);
+  const [created] = await db.insert(bcpTests).values({ tenantId: user.tenant_id, ...parsed }).returning();
+  await logAction({ action: 'bcp_test.created', entity_type: 'bcp_test', entity_id: created.id, user_id: user.id, tenant_id: user.tenant_id, details: { testType: parsed.testType } });
+  return created;
+}

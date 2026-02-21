@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Shield, BarChart3, Handshake, ShieldCheck,
   Lock, ShieldAlert, Zap, FileText, BookOpen, CheckSquare,
   Settings, Bell, Building2, ChevronDown, ChevronUp,
   CreditCard, Gauge, FileWarning, FileOutput, Briefcase,
-  Crown, Bot,
+  Crown, Bot, LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -235,7 +235,18 @@ function NavDropdown({
    ═══════════════════════════════════════════════ */
 export function TopNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      const { getSupabaseBrowser } = await import('@/shared/lib/supabase-client');
+      const supabase = getSupabaseBrowser();
+      await supabase.auth.signOut();
+    } catch { /* ignore if supabase not configured */ }
+    router.push('/he/login');
+    router.refresh();
+  };
 
   // Resolve active nav item from pathname
   const allItems = NAV_GROUPS.flatMap((g) => g.items);
@@ -394,6 +405,20 @@ export function TopNav() {
                 מנהל סיכונים
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              title="התנתק"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#64748B', padding: 4, borderRadius: 6,
+                display: 'flex', alignItems: 'center',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#E2E8F0')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </div>
