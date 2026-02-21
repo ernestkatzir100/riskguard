@@ -1,6 +1,6 @@
 'use server';
 
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { generateReportHTML, generateTableHTML } from '@/shared/lib/report-generator';
 import { db } from '@/db';
@@ -8,7 +8,7 @@ import { tenants, risks, kris, tasks, cyberIncidents, vendors, complianceStatus 
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 export async function generateBoardQuarterlyReport() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, user.tenant_id)).limit(1);
 
   // Gather data

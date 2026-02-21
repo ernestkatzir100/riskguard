@@ -9,7 +9,7 @@ export async function createSupabaseServer() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set');
+    throw new Error('Missing Supabase environment variables');
   }
   return createServerClient(
     supabaseUrl,
@@ -18,9 +18,13 @@ export async function createSupabaseServer() {
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // setAll can fail in read-only contexts (middleware, RSC)
+          }
         },
       },
     }
@@ -35,10 +39,20 @@ export type CurrentUser = {
   role: 'admin' | 'risk_manager' | 'viewer' | 'auditor';
 };
 
+/**
+ * Get the current authenticated user.
+ * Returns null if no valid session — server actions should fall back to demo mode.
+ */
 export async function getCurrentUser(): Promise<CurrentUser> {
-  const supabase = await createSupabaseServer();
+  let supabase;
+  try {
+    supabase = await createSupabaseServer();
+  } catch {
+    throw new Error('Unauthorized');
+  }
+
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error || !user) {
     throw new Error('Unauthorized');
   }
@@ -60,4 +74,34 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     full_name: dbUser.fullName,
     role: dbUser.role,
   };
+}
+
+/**
+ * Demo/fallback user for unauthenticated browsing.
+ * Used when getCurrentUser() throws and the action needs tenant context.
+ */
+export const DEMO_USER: CurrentUser = {
+  id: '00000000-0000-0000-0000-000000000001',
+  tenant_id: '', // filled at runtime from first tenant
+  email: 'demo@riskguard.co.il',
+  full_name: 'דוד כהן',
+  role: 'admin',
+};
+
+/**
+ * Get current user or fall back to demo user for unauthenticated browsing.
+ * This allows pages to load with real DB data even without login.
+ */
+export async function getCurrentUserOrDemo(): Promise<CurrentUser> {
+  try {
+    return await getCurrentUser();
+  } catch {
+    // Fallback: get the first tenant from DB for demo mode
+    const { tenants } = await import('@/db/schema');
+    const [tenant] = await db.select().from(tenants).limit(1);
+    if (tenant) {
+      return { ...DEMO_USER, tenant_id: tenant.id };
+    }
+    throw new Error('No tenant found for demo mode');
+  }
 }

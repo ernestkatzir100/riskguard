@@ -38,10 +38,11 @@ export default function SignupPage() {
       });
 
       if (authError) {
+        console.error('[Signup] Auth error:', authError.message, authError);
         if (authError.message.includes('already registered')) {
           setError('כתובת האימייל כבר רשומה במערכת');
         } else {
-          setError('שגיאה בהרשמה. נסה שנית.');
+          setError(`שגיאה בהרשמה: ${authError.message}`);
         }
         return;
       }
@@ -64,14 +65,17 @@ export default function SignupPage() {
       });
 
       if (!res.ok) {
-        setError('שגיאה ביצירת החשבון. נסה שנית.');
+        const body = await res.json().catch(() => ({}));
+        console.error('[Signup] API error:', res.status, body);
+        setError(`שגיאה ביצירת החשבון: ${body.error ?? res.statusText}`);
         return;
       }
 
       router.push('/he/onboarding');
       router.refresh();
-    } catch {
-      setError('שגיאה בהרשמה. נסה שנית.');
+    } catch (err) {
+      console.error('[Signup] Unexpected error:', err);
+      setError(`שגיאה בהרשמה: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

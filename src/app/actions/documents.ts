@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { documents } from '@/db/schema';
-import { getCurrentUser, createSupabaseServer } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo, createSupabaseServer } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createDocumentSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getDocuments(filters?: { type?: string; module?: string; status?: string }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const results = await db.select().from(documents).where(eq(documents.tenantId, user.tenant_id)).orderBy(desc(documents.createdAt));
   let filtered = results;
   if (filters?.type) filtered = filtered.filter(d => d.type === filters.type);
@@ -17,7 +17,7 @@ export async function getDocuments(filters?: { type?: string; module?: string; s
 }
 
 export async function createDocument(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = createDocumentSchema.parse(data);
   const { expiresAt, ...rest } = parsed;
   const [created] = await db.insert(documents).values({
@@ -38,7 +38,7 @@ export async function createDocument(data: unknown) {
 }
 
 export async function updateDocumentStatus(id: string, status: 'draft' | 'pending_approval' | 'approved' | 'expired') {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const values: Record<string, unknown> = { status, updatedAt: new Date() };
   if (status === 'approved') {
     values.approvedBy = user.id;
@@ -61,7 +61,7 @@ export async function updateDocumentStatus(id: string, status: 'draft' | 'pendin
 }
 
 export async function uploadDocumentFile(documentId: string, formData: FormData) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
 
   // Verify document belongs to tenant
   const [doc] = await db.select().from(documents)

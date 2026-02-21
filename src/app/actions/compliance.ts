@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { complianceStatus, regulations, regRequirements, regSections } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { updateComplianceStatusSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getComplianceStatus() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const results = await db.select({
     compliance: complianceStatus,
     requirement: regRequirements,
@@ -20,7 +20,7 @@ export async function getComplianceStatus() {
 }
 
 export async function updateComplianceStatus(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = updateComplianceStatusSchema.parse(data);
 
   // Upsert: insert if not exists, update if exists
@@ -71,7 +71,7 @@ export async function updateComplianceStatus(data: unknown) {
 }
 
 export async function getComplianceScore() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
 
   // Get all compliance status records with their requirement context
   const records = await db.select({

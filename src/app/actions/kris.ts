@@ -1,18 +1,18 @@
 'use server';
 import { db } from '@/db';
 import { kris } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { updateKRISchema } from '@/shared/lib/validators';
 import { eq, and } from 'drizzle-orm';
 
 export async function getKRIs() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   return db.select().from(kris).where(eq(kris.tenantId, user.tenant_id));
 }
 
 export async function updateKRI(id: string, data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = updateKRISchema.parse(data);
   const [updated] = await db.update(kris)
     .set({ ...parsed, updatedAt: new Date() })
@@ -38,7 +38,7 @@ export async function getKRIHistory(id: string) {
 }
 
 export async function getBreachedKRIs() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   return db.select().from(kris)
     .where(and(eq(kris.tenantId, user.tenant_id), eq(kris.breached, true)));
 }

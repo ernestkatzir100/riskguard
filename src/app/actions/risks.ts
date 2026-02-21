@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { risks, controls, riskControls } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createRiskSchema, updateRiskSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getRisks(filters?: { category?: string; status?: string }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const query = db.select().from(risks).where(eq(risks.tenantId, user.tenant_id)).orderBy(desc(risks.createdAt));
   const results = await query;
   let filtered = results;
@@ -17,7 +17,7 @@ export async function getRisks(filters?: { category?: string; status?: string })
 }
 
 export async function getRiskById(id: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [risk] = await db.select().from(risks).where(and(eq(risks.id, id), eq(risks.tenantId, user.tenant_id))).limit(1);
   if (!risk) throw new Error('Risk not found');
   // Get linked controls
@@ -26,7 +26,7 @@ export async function getRiskById(id: string) {
 }
 
 export async function createRisk(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = createRiskSchema.parse(data);
   const [created] = await db.insert(risks).values({
     tenantId: user.tenant_id,
@@ -38,7 +38,7 @@ export async function createRisk(data: unknown) {
 }
 
 export async function updateRisk(id: string, data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = updateRiskSchema.parse(data);
   const values: Record<string, unknown> = { ...parsed, updatedAt: new Date() };
   if (parsed.probability !== undefined && parsed.impact !== undefined) {
@@ -51,14 +51,14 @@ export async function updateRisk(id: string, data: unknown) {
 }
 
 export async function deleteRisk(id: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   await db.delete(riskControls).where(eq(riskControls.riskId, id));
   await db.delete(risks).where(and(eq(risks.id, id), eq(risks.tenantId, user.tenant_id)));
   await logAction({ action: 'risk.deleted', entity_type: 'risk', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
 }
 
 export async function getRiskHeatMap() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const allRisks = await db.select({ probability: risks.probability, impact: risks.impact }).from(risks).where(and(eq(risks.tenantId, user.tenant_id), eq(risks.status, 'open')));
   const map: Record<string, number> = {};
   for (const r of allRisks) {

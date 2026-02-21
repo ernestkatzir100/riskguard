@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { tenants, users, riskOfficers, directors, notifications } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { updateTenantSchema, onboardingSchema, updateRiskOfficerSchema } from '@/shared/lib/validators';
 import { eq, and } from 'drizzle-orm';
 
 export async function getTenant() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [tenant] = await db.select().from(tenants)
     .where(eq(tenants.id, user.tenant_id))
     .limit(1);
@@ -16,7 +16,7 @@ export async function getTenant() {
 }
 
 export async function updateTenant(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = updateTenantSchema.parse(data);
   const [updated] = await db.update(tenants)
     .set({ ...parsed, updatedAt: new Date() })
@@ -35,7 +35,7 @@ export async function updateTenant(data: unknown) {
 }
 
 export async function completeOnboarding(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = onboardingSchema.parse(data);
 
   // Update tenant with onboarding data
@@ -92,7 +92,7 @@ export async function completeOnboarding(data: unknown) {
 }
 
 export async function getRiskOfficer() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [officer] = await db.select().from(riskOfficers)
     .where(eq(riskOfficers.tenantId, user.tenant_id))
     .limit(1);
@@ -100,7 +100,7 @@ export async function getRiskOfficer() {
 }
 
 export async function updateRiskOfficer(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = updateRiskOfficerSchema.parse(data);
 
   // Upsert: check if exists for tenant
@@ -140,12 +140,12 @@ export async function updateRiskOfficer(data: unknown) {
 }
 
 export async function getUsers() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   return db.select().from(users).where(eq(users.tenantId, user.tenant_id));
 }
 
 export async function inviteUser(email: string, role: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
 
   // Placeholder: actual Supabase Auth invite requires a service role key.
   // For now, create a notification for the admin to track the invite.

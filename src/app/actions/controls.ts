@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { controls, riskControls } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createControlSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getControls(filters?: { type?: string; effectiveness?: string }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const results = await db.select().from(controls).where(eq(controls.tenantId, user.tenant_id)).orderBy(desc(controls.createdAt));
   let filtered = results;
   if (filters?.type) filtered = filtered.filter(c => c.type === filters.type);
@@ -16,7 +16,7 @@ export async function getControls(filters?: { type?: string; effectiveness?: str
 }
 
 export async function createControl(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = createControlSchema.parse(data);
   const [created] = await db.insert(controls).values({ tenantId: user.tenant_id, ...parsed }).returning();
   await logAction({ action: 'control.created', entity_type: 'control', entity_id: created.id, user_id: user.id, tenant_id: user.tenant_id, details: { title: parsed.title } });
@@ -24,7 +24,7 @@ export async function createControl(data: unknown) {
 }
 
 export async function updateControl(id: string, data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = createControlSchema.partial().parse(data);
   const [updated] = await db.update(controls).set({ ...parsed, updatedAt: new Date() }).where(and(eq(controls.id, id), eq(controls.tenantId, user.tenant_id))).returning();
   if (!updated) throw new Error('Control not found');
@@ -33,7 +33,7 @@ export async function updateControl(id: string, data: unknown) {
 }
 
 export async function linkControlToRisk(controlId: string, riskId: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   // Verify both belong to tenant
   const [ctrl] = await db.select().from(controls).where(and(eq(controls.id, controlId), eq(controls.tenantId, user.tenant_id))).limit(1);
   if (!ctrl) throw new Error('Control not found');
@@ -42,7 +42,7 @@ export async function linkControlToRisk(controlId: string, riskId: string) {
 }
 
 export async function unlinkControlFromRisk(controlId: string, riskId: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   await db.delete(riskControls).where(and(eq(riskControls.controlId, controlId), eq(riskControls.riskId, riskId)));
   await logAction({ action: 'control.unlinked', entity_type: 'risk_control', user_id: user.id, tenant_id: user.tenant_id, details: { controlId, riskId } });
 }

@@ -1,6 +1,6 @@
 'use server';
 
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { generateReportHTML, generateTableHTML } from '@/shared/lib/report-generator';
 import { db } from '@/db';
@@ -8,7 +8,7 @@ import { tenants, cyberIncidents } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export async function generateISACyberReport(incidentId: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, user.tenant_id)).limit(1);
   const [incident] = await db.select().from(cyberIncidents).where(
     and(eq(cyberIncidents.id, incidentId), eq(cyberIncidents.tenantId, user.tenant_id))

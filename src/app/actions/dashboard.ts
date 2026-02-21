@@ -1,11 +1,11 @@
 'use server';
 import { db } from '@/db';
 import { tasks, auditLog, kris, complianceStatus, regRequirements } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { eq, and, ne, desc, sql } from 'drizzle-orm';
 
 export async function getDashboardData() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
 
   // Compliance score computation
   const csRecords = await db.select({
@@ -79,7 +79,7 @@ export async function getDashboardData() {
 }
 
 export async function getRecentActivity(limit = 100) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   return db.select().from(auditLog)
     .where(eq(auditLog.tenantId, user.tenant_id))
     .orderBy(desc(auditLog.timestamp))

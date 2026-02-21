@@ -1,13 +1,13 @@
 'use server';
 import { db } from '@/db';
 import { tasks } from '@/db/schema';
-import { getCurrentUser } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createTaskSchema } from '@/shared/lib/validators';
 import { eq, and, desc, ne, sql } from 'drizzle-orm';
 
 export async function getTasks(filters?: { module?: string; status?: string; assignedTo?: string }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const results = await db.select().from(tasks).where(eq(tasks.tenantId, user.tenant_id)).orderBy(desc(tasks.createdAt));
   let filtered = results;
   if (filters?.module) filtered = filtered.filter(t => t.module === filters.module);
@@ -17,7 +17,7 @@ export async function getTasks(filters?: { module?: string; status?: string; ass
 }
 
 export async function createTask(data: unknown) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const parsed = createTaskSchema.parse(data);
   const [created] = await db.insert(tasks).values({
     tenantId: user.tenant_id,
@@ -35,7 +35,7 @@ export async function createTask(data: unknown) {
 }
 
 export async function updateTaskStatus(id: string, status: 'pending' | 'in_progress' | 'completed' | 'overdue') {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [updated] = await db.update(tasks)
     .set({ status })
     .where(and(eq(tasks.id, id), eq(tasks.tenantId, user.tenant_id)))
@@ -53,7 +53,7 @@ export async function updateTaskStatus(id: string, status: 'pending' | 'in_progr
 }
 
 export async function completeTask(id: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const [updated] = await db.update(tasks)
     .set({ status: 'completed', completedAt: new Date() })
     .where(and(eq(tasks.id, id), eq(tasks.tenantId, user.tenant_id)))
@@ -71,7 +71,7 @@ export async function completeTask(id: string) {
 }
 
 export async function getOverdueTasks() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   return db.select().from(tasks)
     .where(and(
       eq(tasks.tenantId, user.tenant_id),
@@ -82,7 +82,7 @@ export async function getOverdueTasks() {
 }
 
 export async function getTasksByModule(module: string) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrDemo();
   const results = await db.select().from(tasks)
     .where(eq(tasks.tenantId, user.tenant_id))
     .orderBy(desc(tasks.createdAt));
