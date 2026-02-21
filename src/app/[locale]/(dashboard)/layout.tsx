@@ -1,6 +1,7 @@
 import { TopNav } from '@/shared/components/top-nav';
 import { NuTelaBubble } from '@/shared/components/nutela-bubble';
 import { PageHeader } from '@/shared/components/page-header';
+import { GlobalSearch } from '@/shared/components/global-search';
 
 export default function DashboardLayout({
   children,
@@ -22,6 +23,7 @@ export default function DashboardLayout({
         {children}
       </div>
       <NuTelaBubble />
+      <GlobalSearch />
     </div>
   );
 }

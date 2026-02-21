@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Shield, BarChart3, Handshake, ShieldCheck,
   Lock, ShieldAlert, Zap, FileText, BookOpen, CheckSquare,
   Settings, CreditCard, Gauge, FileWarning, FileOutput, Briefcase, Bot,
+  ClipboardList,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
@@ -35,6 +36,7 @@ const ROUTE_MAP: Record<string, RouteInfo> = {
   '/he/tasks': { label: 'משימות', Icon: CheckSquare },
   '/he/settings': { label: 'הגדרות', Icon: Settings },
   '/he/onboarding': { label: 'הגדרת מערכת', Icon: Settings },
+  '/he/audit': { label: 'יומן ביקורת', Icon: ClipboardList },
 };
 
 export function PageHeader() {

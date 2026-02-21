@@ -77,3 +77,11 @@ export async function getDashboardData() {
     upcomingDeadlines,
   };
 }
+
+export async function getRecentActivity(limit = 100) {
+  const user = await getCurrentUser();
+  return db.select().from(auditLog)
+    .where(eq(auditLog.tenantId, user.tenant_id))
+    .orderBy(desc(auditLog.timestamp))
+    .limit(limit);
+}

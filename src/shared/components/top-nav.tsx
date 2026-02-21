@@ -8,7 +8,7 @@ import {
   Lock, ShieldAlert, Zap, FileText, BookOpen, CheckSquare,
   Settings, Bell, Building2, ChevronDown, ChevronUp,
   CreditCard, Gauge, FileWarning, FileOutput, Briefcase,
-  Crown, Bot, LogOut,
+  Crown, Bot, LogOut, Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -330,6 +330,21 @@ export function TopNav() {
           >
             PRO
           </span>
+
+          {/* Search trigger */}
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+            title="חיפוש (Ctrl+K)"
+            style={{
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '5px 12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, color: '#64748B',
+              fontSize: 11, fontFamily: 'var(--font-rubik)',
+            }}
+          >
+            <Search size={13} /> חיפוש...
+            <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: 3 }}>⌘K</span>
+          </button>
 
           {/* Notification bell */}
           <div style={{ position: 'relative', cursor: 'pointer' }}>
