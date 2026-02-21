@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Handshake, Shield, CheckSquare,
   X, BookOpen, Activity,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getVendors, createVendor } from '@/app/actions/vendors';
+import { FormModal } from '@/shared/components/form-modal';
+import { VendorForm } from '@/shared/components/forms/vendor-form';
 
 /* ═══ Vendor Data — from V11 ═══ */
 type Assessment = { date: string; score: number; status: string; assessor: string };
@@ -80,17 +83,48 @@ const RISK_LEVELS: Record<number, { label: string; color: string }> = { 1: { lab
 const CRIT_COLORS = { 'קריטי': { c: C.danger, bg: C.dangerBg }, 'גבוה': { c: C.warning, bg: C.warningBg }, 'רגיל': { c: C.success, bg: C.successBg } };
 
 export default function OutsourcingPage() {
+  const [vendors, setVendors] = useState<Vendor[]>(VENDORS);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [filterCrit, setFilterCrit] = useState<string>('הכל');
+  const [showAddVendor, setShowAddVendor] = useState(false);
 
-  const filtered = filterCrit === 'הכל' ? VENDORS : VENDORS.filter(v => v.criticality === filterCrit);
-  const selected = selectedVendor ? VENDORS.find(v => v.id === selectedVendor) : null;
+  async function loadData() {
+    try {
+      const result = await getVendors();
+      if (result && Array.isArray(result) && result.length > 0) {
+        const mapped: Vendor[] = result.map((v: Record<string, unknown>) => ({
+          id: String(v.id ?? ''),
+          name: String(v.name ?? ''),
+          service: String(v.service ?? ''),
+          criticality: (v.criticality as Vendor['criticality']) ?? 'רגיל',
+          riskRating: Number(v.riskRating ?? 2),
+          sla: String(v.sla ?? ''),
+          contractEnd: String(v.contractEnd ?? ''),
+          hasAlternative: Boolean(v.hasAlternative),
+          exitStrategy: Boolean(v.exitStrategy),
+          certifications: Array.isArray(v.certifications) ? v.certifications : [],
+          assessments: Array.isArray(v.assessments) ? v.assessments : [],
+          reg: String(v.reg ?? ''),
+          section: String(v.section ?? ''),
+          reqId: String(v.reqId ?? ''),
+          contact: String(v.contact ?? ''),
+          email: String(v.email ?? ''),
+        }));
+        setVendors(mapped);
+      }
+    } catch { /* fallback to demo */ }
+  }
+  useEffect(() => { loadData(); }, []);
 
-  const criticalCount = VENDORS.filter(v => v.criticality === 'קריטי').length;
-  const noExitCount = VENDORS.filter(v => !v.exitStrategy).length;
-  const avgScore = Math.round(VENDORS.reduce((a, v) => a + (v.assessments[0]?.score || 0), 0) / VENDORS.length);
+  const filtered = filterCrit === 'הכל' ? vendors : vendors.filter(v => v.criticality === filterCrit);
+  const selected = selectedVendor ? vendors.find(v => v.id === selectedVendor) : null;
+
+  const criticalCount = vendors.filter(v => v.criticality === 'קריטי').length;
+  const noExitCount = vendors.filter(v => !v.exitStrategy).length;
+  const avgScore = Math.round(vendors.reduce((a, v) => a + (v.assessments[0]?.score || 0), 0) / vendors.length);
 
   return (
+    <>
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -99,18 +133,23 @@ export default function OutsourcingPage() {
             <Handshake size={20} color={C.accent} /> ניהול מיקור חוץ
           </h1>
           <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
-            {VENDORS.length} ספקים · {criticalCount} קריטיים · {noExitCount} ללא אסטרטגיית יציאה
+            {vendors.length} ספקים · {criticalCount} קריטיים · {noExitCount} ללא אסטרטגיית יציאה
           </p>
         </div>
-        <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <BookOpen size={12} /> חוזר 2024-10-2 § 2(ב)(4)
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setShowAddVendor(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            + הוסף ספק
+          </button>
+          <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <BookOpen size={12} /> חוזר 2024-10-2 § 2(ב)(4)
+          </div>
         </div>
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
         {[
-          { label: 'סה״כ ספקים', value: VENDORS.length, c: C.accent },
+          { label: 'סה״כ ספקים', value: vendors.length, c: C.accent },
           { label: 'ספקים קריטיים', value: criticalCount, c: C.danger },
           { label: 'ציון הערכה ממוצע', value: `${avgScore}%`, c: avgScore >= 80 ? C.success : C.warning },
           { label: 'ללא Exit Strategy', value: noExitCount, c: noExitCount > 0 ? C.danger : C.success },
@@ -261,5 +300,22 @@ export default function OutsourcingPage() {
         )}
       </div>
     </div>
+    <FormModal
+      open={showAddVendor}
+      onClose={() => setShowAddVendor(false)}
+      title="הוסף ספק חדש"
+      onSubmit={() => {}}
+    >
+      <VendorForm
+        mode="create"
+        onSubmit={async (data) => {
+          await createVendor(data);
+          setShowAddVendor(false);
+          await loadData();
+        }}
+        onCancel={() => setShowAddVendor(false)}
+      />
+    </FormModal>
+    </>
   );
 }

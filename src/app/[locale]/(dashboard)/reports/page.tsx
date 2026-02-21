@@ -3,10 +3,14 @@
 import { useState } from 'react';
 import {
   FileOutput, FileText, CheckSquare, Calendar,
-  Plus,
+  Plus, Loader2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { generateBoardQuarterlyReport } from '@/app/actions/reports/board-quarterly';
+import { generateAnnualRiskAssessment } from '@/app/actions/reports/annual-risk-assessment';
+import { generateComplianceGapReport } from '@/app/actions/reports/compliance-gap';
+import { generateVendorRiskReport } from '@/app/actions/reports/vendor-risk';
 
 const DOC_STATUS = {
   approved: { l: 'מאושר', c: C.success, bg: C.successBg },
@@ -57,9 +61,32 @@ const APPROVAL_WORKFLOWS = [
   { doc: 'תוכנית BCP v1.1', step: 1, steps: 2, currentApprover: 'יוסי לוי', status: 'pending' },
 ];
 
+const REPORT_GENERATORS: Record<string, { label: string; fn: () => Promise<string> }> = {
+  'board-quarterly': { label: 'דוח רבעוני לדירקטוריון', fn: generateBoardQuarterlyReport },
+  'annual-risk': { label: 'הערכת סיכונים שנתית', fn: generateAnnualRiskAssessment },
+  'compliance-gap': { label: 'דוח פערי ציות', fn: generateComplianceGapReport },
+  'vendor-risk': { label: 'דוח סיכוני ספקים', fn: generateVendorRiskReport },
+};
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'templates' | 'schedule' | 'approval'>('templates');
   const [filterCat, setFilterCat] = useState('הכל');
+  const [generating, setGenerating] = useState<string | null>(null);
+
+  async function handleGenerate(reportId: string) {
+    const gen = REPORT_GENERATORS[reportId];
+    if (!gen) return;
+    setGenerating(reportId);
+    try {
+      const html = await gen.fn();
+      const w = window.open();
+      w?.document.write(html);
+      w?.document.close();
+    } catch {
+      /* silent */
+    }
+    setGenerating(null);
+  }
 
   const docCats = ['הכל', ...Array.from(new Set(DOC_TEMPLATES.map(d => d.cat)))];
   const filtered = filterCat === 'הכל' ? DOC_TEMPLATES : DOC_TEMPLATES.filter(d => d.cat === filterCat);
@@ -81,6 +108,26 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
             {DOC_TEMPLATES.length} תבניות · {stats.approved} מאושרים · {stats.draft} טיוטות · {stats.missing} חסרים
           </p>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {Object.entries(REPORT_GENERATORS).map(([id, gen]) => (
+            <button
+              key={id}
+              onClick={() => handleGenerate(id)}
+              disabled={generating !== null}
+              style={{
+                background: generating === id ? C.textMuted : C.accentGrad,
+                color: 'white', border: 'none', borderRadius: 8,
+                padding: '7px 16px', fontSize: 11, fontWeight: 600,
+                cursor: generating !== null ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5,
+                opacity: generating !== null && generating !== id ? 0.6 : 1,
+              }}
+            >
+              {generating === id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FileOutput size={12} />}
+              {gen.label}
+            </button>
+          ))}
         </div>
       </div>
 

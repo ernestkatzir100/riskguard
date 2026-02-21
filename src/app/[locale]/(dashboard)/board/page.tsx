@@ -1,11 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Briefcase, BookOpen, Calendar, Clock, CheckCircle2,
   Mail, Users, FileText, AlertCircle, ChevronLeft,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getBoardMeetings, createBoardMeeting, getBoardDecisions, createBoardDecision, updateDecisionStatus } from '@/app/actions/board';
+import { FormModal } from '@/shared/components/form-modal';
+import { MeetingForm } from '@/shared/components/forms/meeting-form';
 
 /* ═══ Board Members ═══ */
 const MEMBERS = [
@@ -15,7 +19,17 @@ const MEMBERS = [
 ];
 
 /* ═══ Meetings ═══ */
-const MEETINGS = [
+type Meeting = {
+  date: string;
+  dateShort: string;
+  type: string;
+  status: 'בוצע' | 'מתוכנן';
+  minutes: string | null;
+  decisions: { total: number; done: number; active: number } | null;
+  agenda: string[] | null;
+};
+
+const MEETINGS: Meeting[] = [
   {
     date: '15 בינואר 2026',
     dateShort: '15/01/2026',
@@ -67,7 +81,30 @@ const APPROVAL_STATUS_STYLE = {
 };
 
 export default function BoardPage() {
+  const [meetings, setMeetings] = useState<Meeting[]>(MEETINGS);
+  const [showAddMeeting, setShowAddMeeting] = useState(false);
+
+  async function loadData() {
+    try {
+      const result = await getBoardMeetings();
+      if (result && Array.isArray(result) && result.length > 0) {
+        const mapped = result.map((m: Record<string, unknown>) => ({
+          date: String(m.date ?? ''),
+          dateShort: String(m.dateShort ?? ''),
+          type: String(m.type ?? ''),
+          status: (m.status as 'בוצע' | 'מתוכנן') ?? 'מתוכנן',
+          minutes: m.minutes ? String(m.minutes) : null,
+          decisions: (m.decisions as { total: number; done: number; active: number } | null) ?? null,
+          agenda: Array.isArray(m.agenda) ? m.agenda as string[] : null,
+        }));
+        setMeetings(mapped);
+      }
+    } catch { /* fallback to demo */ }
+  }
+  useEffect(() => { loadData(); }, []);
+
   return (
+    <>
     <div style={{ direction: 'rtl' }}>
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -80,6 +117,9 @@ export default function BoardPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => setShowAddMeeting(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            + ישיבה חדשה
+          </button>
           <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <BookOpen size={12} /> חוזר 2024-10-2 §2(א)
           </div>
@@ -150,16 +190,16 @@ export default function BoardPage() {
             <Calendar size={14} color={C.accent} /> ציר ישיבות
           </h3>
 
-          {MEETINGS.map((mtg, i) => {
+          {meetings.map((mtg, i) => {
             const sts = STATUS_STYLE[mtg.status];
             const isLast = mtg.status === 'בוצע';
             return (
               <div key={i} style={{
                 position: 'relative',
                 paddingRight: 24,
-                paddingBottom: i < MEETINGS.length - 1 ? 20 : 0,
-                marginBottom: i < MEETINGS.length - 1 ? 12 : 0,
-                borderBottom: i < MEETINGS.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                paddingBottom: i < meetings.length - 1 ? 20 : 0,
+                marginBottom: i < meetings.length - 1 ? 12 : 0,
+                borderBottom: i < meetings.length - 1 ? `1px solid ${C.borderLight}` : 'none',
               }}>
                 {/* Timeline dot */}
                 <div style={{
@@ -169,7 +209,7 @@ export default function BoardPage() {
                   border: `2px solid ${isLast ? C.successBg : C.accentLight}`,
                 }} />
                 {/* Timeline line */}
-                {i < MEETINGS.length - 1 && (
+                {i < meetings.length - 1 && (
                   <div style={{
                     position: 'absolute', right: 5, top: 18,
                     width: 2, height: 'calc(100% - 14px)',
@@ -282,5 +322,22 @@ export default function BoardPage() {
         </span>
       </div>
     </div>
+    <FormModal
+      open={showAddMeeting}
+      onClose={() => setShowAddMeeting(false)}
+      title="ישיבה חדשה"
+      onSubmit={() => {}}
+    >
+      <MeetingForm
+        mode="create"
+        onSubmit={async (data) => {
+          await createBoardMeeting(data);
+          setShowAddMeeting(false);
+          await loadData();
+        }}
+        onCancel={() => setShowAddMeeting(false)}
+      />
+    </FormModal>
+    </>
   );
 }

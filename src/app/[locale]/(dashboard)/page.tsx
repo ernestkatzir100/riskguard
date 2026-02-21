@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getDashboardData } from '@/app/actions/dashboard';
 import Link from 'next/link';
 import {
   Shield, BarChart3, Handshake, ShieldCheck, Lock, ShieldAlert,
@@ -225,11 +226,16 @@ function AgentPushCard({ item }: { item: PushItem }) {
    ═══════════════════════════════════════════════ */
 export default function DashboardPage() {
   const [dashFilter, setDashFilter] = useState<'all' | 'risk' | 'cyber'>('all');
+  const [dbData, setDbData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
+
+  useEffect(() => {
+    getDashboardData().then(setDbData).catch(() => {/* silent fallback to demo data */});
+  }, []);
 
   const modules = dashFilter === 'all' ? ALL_MODULES : ALL_MODULES.filter((m) => m.reg === dashFilter);
   const trend = TREND_DATA[dashFilter];
   const radar = RADAR_DATA[dashFilter];
-  const overallScore = SCORES[dashFilter];
+  const overallScore = dbData && dashFilter === 'all' ? dbData.complianceScore : SCORES[dashFilter];
   const benchmarkScore = BENCHMARKS[dashFilter];
 
   // Use shared compliance engine for weighted score calculation
@@ -240,7 +246,7 @@ export default function DashboardPage() {
   const metReqs = complianceResult.totalMet;
   const compliancePct = totalReqs ? Math.round((metReqs / totalReqs) * 100) : 0;
   const filteredTasks = dashFilter === 'all' ? TASKS : TASKS.filter((t) => t.reg === dashFilter);
-  const overdueCount = TASKS.filter((t) => t.status === 'overdue').length;
+  const overdueCount = dbData ? dbData.overdueTasks.length : TASKS.filter((t) => t.status === 'overdue').length;
   const highPriorityCount = AGENT_PUSH_QUEUE.filter((p) => p.priority === 'high').length;
 
   const today = new Date().toLocaleDateString('he-IL', {

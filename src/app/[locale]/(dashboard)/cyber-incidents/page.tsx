@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Zap, BookOpen, X, AlertTriangle, CheckCircle,
   Shield, FileText, User, Activity,
@@ -8,6 +8,9 @@ import {
 
 import { C } from '@/shared/lib/design-tokens';
 import { ScoreRing } from '@/shared/components/score-ring';
+import { getCyberIncidents, createCyberIncident, updateCyberIncident } from '@/app/actions/cyber';
+import { FormModal } from '@/shared/components/form-modal';
+import { IncidentForm } from '@/shared/components/forms/incident-form';
 
 /* ═══ Incident Data ═══ */
 type TimelineStep = { label: string; date: string; done: boolean; note?: string };
@@ -89,15 +92,39 @@ const PROCEDURE_STEPS = [
 ];
 
 export default function CyberIncidentsPage() {
+  const [incidents, setIncidents] = useState<Incident[]>(INCIDENTS);
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
+  const [showAddIncident, setShowAddIncident] = useState(false);
 
-  const selected = selectedIncident ? INCIDENTS.find(inc => inc.id === selectedIncident) : null;
+  async function loadData() {
+    try {
+      const result = await getCyberIncidents();
+      if (result && Array.isArray(result) && result.length > 0) {
+        const mapped: Incident[] = result.map((inc: Record<string, unknown>) => ({
+          id: String(inc.id ?? ''),
+          type: String(inc.type ?? ''),
+          date: String(inc.date ?? ''),
+          severity: (inc.severity as Incident['severity']) ?? 'נמוך',
+          status: (inc.status as Incident['status']) ?? 'פתוח',
+          owner: String(inc.owner ?? ''),
+          description: String(inc.description ?? ''),
+          timeline: Array.isArray(inc.timeline) ? inc.timeline : [],
+          resolution: inc.resolution ? String(inc.resolution) : undefined,
+        }));
+        setIncidents(mapped);
+      }
+    } catch { /* fallback to demo */ }
+  }
+  useEffect(() => { loadData(); }, []);
+
+  const selected = selectedIncident ? incidents.find(inc => inc.id === selectedIncident) : null;
   const complianceScore = 80;
-  const totalIncidents = INCIDENTS.length;
-  const openIncidents = INCIDENTS.filter(inc => inc.status === 'פתוח').length;
+  const totalIncidents = incidents.length;
+  const openIncidents = incidents.filter(inc => inc.status === 'פתוח').length;
   const avgResponseHours = 2.5;
 
   return (
+    <>
     <div style={{ direction: 'rtl' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -110,6 +137,9 @@ export default function CyberIncidentsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => setShowAddIncident(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            + דווח אירוע
+          </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ScoreRing score={80} size={60} label="ציון ציות" />
           </div>
@@ -272,7 +302,7 @@ export default function CyberIncidentsPage() {
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: selected ? '12px 0 0 12px' : 12, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 6 }}>
               <AlertTriangle size={13} color={C.accent} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>יומן אירועים ({INCIDENTS.length})</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>יומן אירועים ({incidents.length})</span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>
               <thead>
@@ -283,7 +313,7 @@ export default function CyberIncidentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {INCIDENTS.map((inc, i) => {
+                {incidents.map((inc, i) => {
                   const isSel = selectedIncident === inc.id;
                   const sevStyle = SEVERITY_STYLE[inc.severity];
                   const statStyle = STATUS_STYLE[inc.status];
@@ -411,5 +441,22 @@ export default function CyberIncidentsPage() {
         </div>
       </div>
     </div>
+    <FormModal
+      open={showAddIncident}
+      onClose={() => setShowAddIncident(false)}
+      title="דווח אירוע סייבר חדש"
+      onSubmit={() => {}}
+    >
+      <IncidentForm
+        mode="create"
+        onSubmit={async (data) => {
+          await createCyberIncident(data);
+          setShowAddIncident(false);
+          await loadData();
+        }}
+        onCancel={() => setShowAddIncident(false)}
+      />
+    </FormModal>
+    </>
   );
 }

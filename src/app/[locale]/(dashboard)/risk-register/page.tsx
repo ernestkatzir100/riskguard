@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart3, Grid3X3, List, X, Pencil, Save,
   Shield, Info, BookOpen,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getRisks, createRisk, updateRisk, deleteRisk } from '@/app/actions/risks';
+import { getControls, createControl } from '@/app/actions/controls';
+import { FormModal } from '@/shared/components/form-modal';
+import { RiskForm } from '@/shared/components/forms/risk-form';
 
 /* ═══════════════════════════════════════════════
    Risk & Control constants
@@ -241,6 +245,29 @@ export default function RiskRegisterPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [showAddRisk, setShowAddRisk] = useState(false);
+
+  async function loadData() {
+    try {
+      const result = await getRisks();
+      if (result && Array.isArray(result) && result.length > 0) {
+        const mapped: Risk[] = result.map((r: Record<string, unknown>) => ({
+          id: String(r.id ?? ''),
+          name: String(r.name ?? ''),
+          cat: String(r.category ?? r.cat ?? ''),
+          module: String(r.module ?? ''),
+          inherent: Number(r.inherent ?? r.inherentRisk ?? 3),
+          reg: String(r.reg ?? r.regulation ?? ''),
+          section: String(r.section ?? ''),
+          reqId: String(r.reqId ?? ''),
+          controls: Array.isArray(r.controls) ? r.controls : [],
+          tier: r.tier ? String(r.tier) : undefined,
+        }));
+        setRisks(mapped);
+      }
+    } catch { /* fallback to demo */ }
+  }
+  useEffect(() => { loadData(); }, []);
 
   const filtered = filterCat === 'הכל' ? risks : risks.filter(r => r.cat === filterCat);
   const selected = risks.find(r => r.id === selectedId);
@@ -262,6 +289,7 @@ export default function RiskRegisterPage() {
   const avgResidual = (risks.reduce((a, r) => a + calcResidual(r.inherent, r.controls), 0) / risks.length).toFixed(1);
 
   return (
+    <>
     <div>
       {/* ═══ Header ═══ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -274,6 +302,9 @@ export default function RiskRegisterPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setShowAddRisk(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            + הוסף סיכון
+          </button>
           <div style={{ display: 'flex', background: C.borderLight, borderRadius: 8, padding: 3 }}>
             {[
               { id: 'heatmap' as const, Icon: Grid3X3, l: 'מפת חום' },
@@ -599,5 +630,22 @@ export default function RiskRegisterPage() {
         )}
       </div>
     </div>
+    <FormModal
+      open={showAddRisk}
+      onClose={() => setShowAddRisk(false)}
+      title="הוסף סיכון חדש"
+      onSubmit={() => {}}
+    >
+      <RiskForm
+        mode="create"
+        onSubmit={async (data) => {
+          await createRisk(data);
+          setShowAddRisk(false);
+          await loadData();
+        }}
+        onCancel={() => setShowAddRisk(false)}
+      />
+    </FormModal>
+    </>
   );
 }

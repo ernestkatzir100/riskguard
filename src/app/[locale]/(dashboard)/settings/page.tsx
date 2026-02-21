@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Settings,
   Building2,
@@ -13,9 +13,11 @@ import {
   FileText,
   X,
   DollarSign,
+  Plus,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getTenant, updateTenant, getUsers, inviteUser } from '@/app/actions/settings';
 
 /* ═══ Demo Company ═══ */
 const COMPANY = { name: 'קרדיט-פיננס בע״מ' };
@@ -484,6 +486,66 @@ function BillingScreen() {
 /* ═══ Settings Page — Main Component ═══ */
 export default function SettingsPage() {
   const [tab, setTab] = useState('org');
+  const [orgFields, setOrgFields] = useState(ORG_FIELDS);
+  const [teamMembers, setTeamMembers] = useState(TEAM);
+  const [saving, setSaving] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('');
+  const [showInvite, setShowInvite] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const tenant = await getTenant();
+        if (tenant) {
+          setOrgFields([
+            { l: 'שם חברה', v: tenant.name || COMPANY.name },
+            { l: 'ח.פ.', v: tenant.companyId || '51-543210-8' },
+            { l: 'סוג רישיון', v: tenant.licenseType || 'רישיון אשראי מורחב' },
+            { l: 'כתובת', v: tenant.address || 'רח׳ הברזל 22, תל אביב' },
+            { l: 'טלפון', v: '03-7654321' },
+            { l: 'מספר עובדים', v: String(tenant.employeeCount || '35') },
+          ]);
+        }
+        const users = await getUsers();
+        if (users.length > 0) {
+          setTeamMembers(users.map((u) => ({
+            name: u.fullName || u.email?.split('@')[0] || '',
+            role: u.role || '',
+            email: u.email || '',
+          })));
+        }
+      } catch {
+        /* silent fallback to demo data */
+      }
+    }
+    loadData();
+  }, []);
+
+  async function handleSaveOrg() {
+    setSaving(true);
+    try {
+      await updateTenant({
+        name: orgFields.find(f => f.l === 'שם חברה')?.v,
+        address: orgFields.find(f => f.l === 'כתובת')?.v,
+      });
+    } catch {
+      /* silent */
+    }
+    setSaving(false);
+  }
+
+  async function handleInviteUser() {
+    if (!inviteEmail || !inviteRole) return;
+    try {
+      await inviteUser(inviteEmail, inviteRole);
+      setInviteEmail('');
+      setInviteRole('');
+      setShowInvite(false);
+    } catch {
+      /* silent */
+    }
+  }
 
   const TABS = [
     { id: 'org', l: 'ארגון וצוות', Icon: Building2 },
@@ -555,7 +617,7 @@ export default function SettingsPage() {
             >
               <Building2 size={14} color={C.accent} /> פרטי ארגון
             </h3>
-            {ORG_FIELDS.map((f, i) => (
+            {orgFields.map((f, i) => (
               <div
                 key={i}
                 style={{
@@ -569,6 +631,17 @@ export default function SettingsPage() {
                 <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{f.v}</span>
               </div>
             ))}
+            <button
+              onClick={handleSaveOrg}
+              disabled={saving}
+              style={{
+                marginTop: 14, background: saving ? C.textMuted : C.accentGrad, color: 'white',
+                border: 'none', borderRadius: 8, padding: '7px 20px', fontSize: 12,
+                fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-rubik)',
+              }}
+            >
+              {saving ? 'שומר...' : 'שמור'}
+            </button>
           </div>
 
           {/* Team */}
@@ -586,8 +659,27 @@ export default function SettingsPage() {
               }}
             >
               <Users size={14} color={C.accent} /> צוות
+              <button
+                onClick={() => setShowInvite(!showInvite)}
+                style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5, marginRight: 'auto', marginLeft: 0 }}
+              >
+                <Plus size={14} /> הזמן משתמש
+              </button>
             </h3>
-            {TEAM.map((u, i) => (
+            {showInvite && (
+              <div style={{ background: C.borderLight, borderRadius: 8, padding: 12, marginBottom: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, fontFamily: 'var(--font-rubik)', display: 'block', marginBottom: 4 }}>אימייל</label>
+                  <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="email@company.co.il" style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-assistant)', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, fontFamily: 'var(--font-rubik)', display: 'block', marginBottom: 4 }}>תפקיד</label>
+                  <input value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} placeholder="מנהל סיכונים" style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-assistant)', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <button onClick={handleInviteUser} style={{ background: C.accent, color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>שלח הזמנה</button>
+              </div>
+            )}
+            {teamMembers.map((u, i) => (
               <div
                 key={i}
                 style={{

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   X,
   Send,
@@ -126,24 +127,43 @@ function NuTelaAvatar({ size = 44, animate = true }: { size?: number; animate?: 
   );
 }
 
-/* ═══ NuTeLa Tips ═══ */
-const NUTELA_TIPS = {
+/* ═══ NuTeLa Tips — contextual by route ═══ */
+const NUTELA_TIPS: Record<string, string> = {
   generic:
     'היי! 👋 אני NuTeLa, עוזרת הסיכונים שלך.\n\nלא בטוח איך לדרג את הבקרה? הנה כלל אצבע:\n\n1 = לא קיימת — אין שום דבר מיושם\n2 = חלקית — יש תהליך אבל לא עקבי\n3 = מיושמת — עובד, אבל יש פערים\n4 = אפקטיבית — עובד טוב, מתועד\n5 = אפקטיבית מאוד — עובד מצוין, נבדק, מוכח',
+  '/he/risk-register':
+    '🛡️ מפת סיכונים ובקרות\n\n💡 טיפ: סמן סיכון כדי לראות ולעדכן את הבקרות שלו.\n\nאפקטיביות בקרה גבוהה = סיכון שיורי נמוך.\n\nוודא שכל סיכון קריטי (4-5) מכוסה בלפחות 2 בקרות.',
+  '/he/outsourcing':
+    '🤝 ניהול מיקור חוץ\n\n💡 טיפ: וודא שלכל ספק קריטי יש:\n✓ Exit Strategy מתועדת\n✓ הסכם SLA עדכני\n✓ הערכת סיכון שנתית\n✗ ספק ללא חלופה = סיכון גבוה',
+  '/he/cyber-incidents':
+    '⚡ אירועי סייבר\n\n💡 חשוב לתעד כל אירוע סייבר בזמן אמת.\n\nוודא שכל שלב (זיהוי → הכלה → חקירה → סגירה) מתועד.\n\nדיווח לרשות שוק ההון נדרש תוך 24 שעות לאירועים חמורים.',
+  '/he/bcp':
+    '🛡️ המשכיות עסקית\n\n💡 טיפ: תוכנית BCP צריכה לכלול:\n✓ ניתוח BIA לכל פונקציה קריטית\n✓ RTO ו-RPO מוגדרים\n✓ תרגיל שנתי מתועד\n\nהגיע הזמן לתרגול? לחץ ״הוסף מבחן״.',
+  '/he/kri':
+    '📊 מדדי סיכון מרכזיים\n\n💡 מדד בירוק = תקין. צהוב = תשומת לב. אדום = חריגה!\n\nבדוק שכל KRI מעודכן ושיש לו ספים מוגדרים.\n\nחריגה מחייבת דיווח מיידי להנהלה.',
+  '/he/board':
+    '📋 דירקטוריון\n\n💡 טיפ: ישיבה רבעונית חובה בחוזר 2024-10-2.\n\nוודא שכל החלטה מתועדת עם אחראי וזמן יעד.\n\nפרוטוקולים צריכים אישור תוך 14 יום.',
+  '/he/settings':
+    '⚙️ הגדרות\n\n💡 טיפ: וודא שפרטי החברה מעודכנים.\n\nהגדרות אלו משפיעות על דוחות וסטטוס ציות.\n\nניתן להזמין משתמשים נוספים מהמסך הזה.',
 };
+
+function getTipForRoute(pathname: string): string {
+  return NUTELA_TIPS[pathname] ?? NUTELA_TIPS.generic;
+}
 
 /* ═══ Quick Actions ═══ */
 const quickActions = [
-  { label: 'סקירת ציות מהירה', icon: Shield, color: C.accent },
-  { label: 'הפק דוח סיכונים', icon: FileText, color: C.success },
-  { label: 'בדוק מצב משימות', icon: CheckSquare, color: '#BD34FE' },
+  { label: 'סקירת ציות מהירה', icon: Shield, color: C.accent, href: '/he/regulation' },
+  { label: 'הפק דוח סיכונים', icon: FileText, color: C.success, href: '/he/reports' },
+  { label: 'בדוק מצב משימות', icon: CheckSquare, color: '#BD34FE', href: '/he/tasks' },
 ];
 
 /* ═══ NuTeLa Panel ═══ */
-function NuTelaPanel({ onClose, onOpenQuestionnaire }: { onClose: () => void; onOpenQuestionnaire?: () => void }) {
+function NuTelaPanel({ onClose, onOpenQuestionnaire, pathname, onNavigate }: { onClose: () => void; onOpenQuestionnaire?: () => void; pathname: string; onNavigate: (href: string) => void }) {
   const [typing, setTyping] = useState(true);
   const [input, setInput] = useState('');
-  const lines = NUTELA_TIPS.generic.split('\n').filter(Boolean);
+  const tip = getTipForRoute(pathname);
+  const lines = tip.split('\n').filter(Boolean);
 
   useEffect(() => {
     setTyping(true);
@@ -481,7 +501,7 @@ function NuTelaPanel({ onClose, onOpenQuestionnaire }: { onClose: () => void; on
                       transition: 'all 0.15s',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     }}
-                    onClick={() => onOpenQuestionnaire?.()}
+                    onClick={() => { if (qa.href) { onNavigate(qa.href); onClose(); } else { onOpenQuestionnaire?.(); } }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = qa.color;
                       e.currentTarget.style.background = `${qa.color}08`;
@@ -602,6 +622,8 @@ function NuTelaPanel({ onClose, onOpenQuestionnaire }: { onClose: () => void; on
 export function NuTelaBubble() {
   const [open, setOpen] = useState(false);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handler = () => { setOpen(false); setShowQuestionnaire(true); };
@@ -673,11 +695,22 @@ export function NuTelaBubble() {
       )}
 
       {/* Panel */}
-      {open && <NuTelaPanel onClose={() => setOpen(false)} onOpenQuestionnaire={() => { setOpen(false); setShowQuestionnaire(true); }} />}
+      {open && <NuTelaPanel onClose={() => setOpen(false)} onOpenQuestionnaire={() => { setOpen(false); setShowQuestionnaire(true); }} pathname={pathname} onNavigate={(href) => router.push(href)} />}
 
       {/* NuTeLa Questionnaire Modal */}
       {showQuestionnaire && (
-        <NuTelaQuestionnaire onClose={() => setShowQuestionnaire(false)} />
+        <NuTelaQuestionnaire
+          onClose={() => setShowQuestionnaire(false)}
+          onComplete={(answers) => {
+            // Log questionnaire completion (fire and forget)
+            try {
+              import('@/app/actions/dashboard').then(({ getDashboardData }) => {
+                void getDashboardData(); // refresh dashboard data as side effect
+              });
+            } catch { /* silent */ }
+            console.log('[NuTeLa] Questionnaire completed:', answers);
+          }}
+        />
       )}
     </>
   );

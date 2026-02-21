@@ -97,7 +97,7 @@ const SLIDER_LABELS: Record<number, string> = {
 };
 
 /* ═══ NuTeLa Questionnaire Modal ═══ */
-export function NuTelaQuestionnaire({ onClose }: { onClose: () => void }) {
+export function NuTelaQuestionnaire({ onClose, onComplete }: { onClose: () => void; onComplete?: (answers: Record<string, string | number>) => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [sliderValue, setSliderValue] = useState(3);
@@ -105,10 +105,12 @@ export function NuTelaQuestionnaire({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (currentStep === 3) {
+      // Fire completion callback with collected answers
+      onComplete?.(answers);
       const timer = setTimeout(onClose, 2000);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, onClose]);
+  }, [currentStep, onClose, onComplete, answers]);
 
   const advanceTo = useCallback((step: number) => {
     setFadeIn(false);

@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Gauge, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, CheckCircle, AlertCircle,
+  AlertTriangle, CheckCircle, AlertCircle, Plus,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { getKRIs, updateKRI } from '@/app/actions/kris';
+import { FormModal } from '@/shared/components/form-modal';
+import { KRIForm } from '@/shared/components/forms/kri-form';
 
 /* ═══════════════════════════════════════════════
    KRI Data
@@ -137,16 +140,40 @@ function Sparkline({ data, status }: { data: number[]; status: Status }) {
    ═══════════════════════════════════════════════ */
 export default function KRIPage() {
   const [filterCat, setFilterCat] = useState('הכל');
+  const [kriData, setKriData] = useState<KRI[]>(KRI_DATA);
+  const [showAddKRI, setShowAddKRI] = useState(false);
 
-  const filtered = filterCat === 'הכל' ? KRI_DATA : KRI_DATA.filter(k => k.cat === filterCat);
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const rows = await getKRIs();
+        if (rows.length > 0) {
+          setKriData(rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            value: Number(r.currentValue) || 0,
+            unit: '',
+            threshold: { green: 5, yellow: 7, red: 10 },
+            trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0],
+            cat: 'כללי',
+          })));
+        }
+      } catch {
+        /* silent fallback to demo KRI_DATA */
+      }
+    }
+    loadData();
+  }, []);
+
+  const filtered = filterCat === 'הכל' ? kriData : kriData.filter(k => k.cat === filterCat);
 
   // Status counts
-  const greenCount = KRI_DATA.filter(k => getStatus(k) === 'green').length;
-  const yellowCount = KRI_DATA.filter(k => getStatus(k) === 'yellow').length;
-  const redCount = KRI_DATA.filter(k => getStatus(k) === 'red').length;
+  const greenCount = kriData.filter(k => getStatus(k) === 'green').length;
+  const yellowCount = kriData.filter(k => getStatus(k) === 'yellow').length;
+  const redCount = kriData.filter(k => getStatus(k) === 'red').length;
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <><div style={{ direction: 'rtl' }}>
       {/* ═══ Header ═══ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div>
@@ -169,6 +196,12 @@ export default function KRIPage() {
             ניטור רציף של מדדי סיכון ביחס לספים מותרים
           </p>
         </div>
+        <button
+          onClick={() => setShowAddKRI(true)}
+          style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          <Plus size={14} /> מדד חדש
+        </button>
       </div>
 
       {/* ═══ Breach Alert Banner ═══ */}
@@ -429,5 +462,26 @@ export default function KRIPage() {
         </div>
       </div>
     </div>
+    <FormModal
+      open={showAddKRI}
+      onClose={() => setShowAddKRI(false)}
+      title="הוספת מדד סיכון חדש"
+      onSubmit={() => {}}
+      submitLabel="הוסף מדד"
+    >
+      <KRIForm
+        mode="create"
+        onSubmit={async (data) => {
+          try {
+            await updateKRI('new', data);
+          } catch {
+            /* silent */
+          }
+          setShowAddKRI(false);
+        }}
+        onCancel={() => setShowAddKRI(false)}
+      />
+    </FormModal>
+    </>
   );
 }
