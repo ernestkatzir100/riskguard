@@ -99,7 +99,7 @@ export function DocumentForm({ mode, initialData, onSubmit, onCancel }: Document
       {/* title */}
       <div style={fieldStyle}>
         <label style={labelStyle}>כותרת *</label>
-        <input style={inputStyle} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם המסמך" />
+        <input style={{ ...inputStyle, ...(errors.title ? { borderColor: C.danger } : {}) }} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם המסמך" />
         {errors.title && <div style={errorStyle}>{errors.title}</div>}
       </div>
 
@@ -124,7 +124,7 @@ export function DocumentForm({ mode, initialData, onSubmit, onCancel }: Document
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>גרסה *</label>
-          <input style={inputStyle} value={form.version} onChange={e => set('version', e.target.value)} placeholder="1.0" />
+          <input style={{ ...inputStyle, ...(errors.version ? { borderColor: C.danger } : {}) }} value={form.version} onChange={e => set('version', e.target.value)} placeholder="1.0" />
           {errors.version && <div style={errorStyle}>{errors.version}</div>}
         </div>
         <div style={{ flex: 1 }}>

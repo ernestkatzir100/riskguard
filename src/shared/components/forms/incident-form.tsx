@@ -92,7 +92,7 @@ export function IncidentForm({ mode, initialData, onSubmit, onCancel }: Incident
       {/* title */}
       <div style={fieldStyle}>
         <label style={labelStyle}>כותרת *</label>
-        <input style={inputStyle} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם אירוע הסייבר" />
+        <input style={{ ...inputStyle, ...(errors.title ? { borderColor: C.danger } : {}) }} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם אירוע הסייבר" />
         {errors.title && <div style={errorStyle}>{errors.title}</div>}
       </div>
 
@@ -127,7 +127,7 @@ export function IncidentForm({ mode, initialData, onSubmit, onCancel }: Incident
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>זמן זיהוי *</label>
-          <input style={inputStyle} type="datetime-local" value={form.detectedAt} onChange={e => set('detectedAt', e.target.value)} />
+          <input style={{ ...inputStyle, ...(errors.detectedAt ? { borderColor: C.danger } : {}) }} type="datetime-local" value={form.detectedAt} onChange={e => set('detectedAt', e.target.value)} />
           {errors.detectedAt && <div style={errorStyle}>{errors.detectedAt}</div>}
         </div>
       </div>

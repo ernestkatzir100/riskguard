@@ -32,6 +32,23 @@ export async function createBoardMeeting(data: unknown) {
   return created;
 }
 
+export async function updateBoardMeeting(id: string, data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createBoardMeetingSchema.partial().parse(data);
+  const [updated] = await db.update(boardMeetings).set(parsed).where(and(eq(boardMeetings.id, id), eq(boardMeetings.tenantId, user.tenant_id))).returning();
+  if (!updated) throw new Error('Meeting not found');
+  await logAction({ action: 'board_meeting.updated', entity_type: 'board_meeting', entity_id: id, user_id: user.id, tenant_id: user.tenant_id, details: parsed as Record<string, unknown> });
+  return updated;
+}
+
+export async function deleteBoardMeeting(id: string) {
+  const user = await getCurrentUserOrDemo();
+  // Delete related decisions first
+  await db.delete(boardDecisions).where(eq(boardDecisions.meetingId, id));
+  await db.delete(boardMeetings).where(and(eq(boardMeetings.id, id), eq(boardMeetings.tenantId, user.tenant_id)));
+  await logAction({ action: 'board_meeting.deleted', entity_type: 'board_meeting', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
+}
+
 export async function createBoardDecision(data: unknown) {
   const user = await getCurrentUserOrDemo();
   const parsed = createBoardDecisionSchema.parse(data);

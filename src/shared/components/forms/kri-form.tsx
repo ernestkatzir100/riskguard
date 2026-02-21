@@ -74,14 +74,14 @@ export function KRIForm({ mode, initialData, onSubmit, onCancel }: KRIFormProps)
       {/* name */}
       <div style={fieldStyle}>
         <label style={labelStyle}>שם המדד *</label>
-        <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="שם מדד הסיכון המפתח" />
+        <input style={{ ...inputStyle, ...(errors.name ? { borderColor: C.danger } : {}) }} value={form.name} onChange={e => set('name', e.target.value)} placeholder="שם מדד הסיכון המפתח" />
         {errors.name && <div style={errorStyle}>{errors.name}</div>}
       </div>
 
       {/* currentValue */}
       <div style={fieldStyle}>
         <label style={labelStyle}>ערך נוכחי *</label>
-        <input style={inputStyle} value={form.currentValue} onChange={e => set('currentValue', e.target.value)} placeholder='לדוגמה: 4.2' />
+        <input style={{ ...inputStyle, ...(errors.currentValue ? { borderColor: C.danger } : {}) }} value={form.currentValue} onChange={e => set('currentValue', e.target.value)} placeholder='לדוגמה: 4.2' />
         {errors.currentValue && <div style={errorStyle}>{errors.currentValue}</div>}
       </div>
 

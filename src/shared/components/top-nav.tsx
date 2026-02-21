@@ -8,7 +8,7 @@ import {
   Lock, ShieldAlert, Zap, FileText, BookOpen, CheckSquare,
   Settings, Bell, Building2, ChevronDown, ChevronUp,
   CreditCard, Gauge, FileWarning, FileOutput, Briefcase,
-  Crown, Bot, LogOut, Search,
+  Crown, Bot, LogOut, Search, Menu, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -237,6 +237,7 @@ export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -302,22 +303,37 @@ export function TopNav() {
           >
             RiskGuard
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>|</span>
-          <Building2 size={14} color={C.textMuted} />
-          <span
-            style={{
-              color: C.textMuted,
-              fontSize: 13,
-              fontFamily: 'var(--font-assistant)',
-            }}
-          >
-            אשראי פייננס בע״מ
+          <span className="top-brand-company" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>|</span>
+            <Building2 size={14} color={C.textMuted} />
+            <span
+              style={{
+                color: C.textMuted,
+                fontSize: 13,
+                fontFamily: 'var(--font-assistant)',
+              }}
+            >
+              אשראי פייננס בע״מ
+            </span>
           </span>
         </div>
 
         {/* Left side: PRO badge + bell + user */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Hamburger — visible on mobile only via CSS */}
+          <button
+            className="mobile-menu-toggle"
+            onClick={() => setMobileOpen(prev => !prev)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#CBD5E1', padding: 4,
+            }}
+            aria-label="תפריט"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
           <span
+            className="top-brand-pro"
             style={{
               fontSize: 10,
               fontWeight: 700,
@@ -333,6 +349,7 @@ export function TopNav() {
 
           {/* Search trigger */}
           <button
+            className="top-brand-search"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
             title="חיפוש (Ctrl+K)"
             style={{
@@ -438,8 +455,9 @@ export function TopNav() {
         </div>
       </div>
 
-      {/* ── Nav bar ── */}
+      {/* ── Nav bar (hidden on mobile via CSS) ── */}
       <div
+        className="top-nav-links"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -508,6 +526,54 @@ export function TopNav() {
                 );
               })
             )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Mobile navigation panel (shown via CSS when .open) ── */}
+      <div
+        className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`}
+        style={{
+          background: C.navBg,
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          padding: '8px 16px',
+          maxHeight: '70vh',
+          overflowY: 'auto',
+        }}
+      >
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} style={{ marginBottom: 4 }}>
+            {group.label && (
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: '#64748B',
+                fontFamily: 'var(--font-rubik)', padding: '8px 8px 4px',
+                letterSpacing: 0.5,
+              }}>
+                {group.label}
+              </div>
+            )}
+            {group.items.map((item) => {
+              const active = item.id === activeId;
+              const Ic = item.Icon;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 8px', borderRadius: 8,
+                    background: active ? 'rgba(74,142,194,0.15)' : 'transparent',
+                    color: active ? '#8CC8E8' : '#94A3B8',
+                    fontSize: 13, fontWeight: active ? 600 : 400,
+                    fontFamily: 'var(--font-rubik)', textDecoration: 'none',
+                  }}
+                >
+                  <Ic size={16} strokeWidth={active ? 2.2 : 1.8} />
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         ))}
       </div>

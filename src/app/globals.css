@@ -126,22 +126,63 @@ th,
 
 /* ═══ Responsive layout ═══ */
 
-/* Tablet: ≤1024px — stack cards, compress padding */
+/* Desktop: hide mobile-only elements */
+.mobile-menu-toggle { display: none !important; }
+.mobile-nav-panel { display: none !important; }
+
+/* Tablet: ≤1024px — compress padding, collapse 4+ col grids to 2 */
 @media (max-width: 1024px) {
   .dashboard-content {
     padding: 16px !important;
   }
 
-  .rg-grid-2, .rg-grid-3 {
-    grid-template-columns: 1fr !important;
+  /* Class-based grids (dashboard page) */
+  .rg-grid-3, .rg-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Inline-style grids — collapse 4/5 columns to 2 */
+  .dashboard-content [style*="repeat(4"],
+  .dashboard-content [style*="repeat(5"] {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
-/* Mobile: ≤768px — collapse nav, full-width cards */
+/* Mobile: ≤768px — collapse nav, single-column grids */
 @media (max-width: 768px) {
+  .dashboard-content {
+    padding: 12px !important;
+  }
+
+  /* Class-based grids */
   .rg-grid-2, .rg-grid-3, .rg-grid-4 {
     grid-template-columns: 1fr !important;
   }
+
+  /* Inline-style grids — all multi-column collapse to single */
+  .dashboard-content [style*="repeat(4"],
+  .dashboard-content [style*="repeat(5"],
+  .dashboard-content [style*="repeat(3"],
+  .dashboard-content [style*="2fr 1fr"],
+  .dashboard-content [style*="1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* TopNav: hide desktop nav links, show hamburger */
+  .top-nav-links {
+    display: none !important;
+  }
+  .mobile-menu-toggle {
+    display: flex !important;
+  }
+  .mobile-nav-panel.open {
+    display: block !important;
+  }
+
+  /* Hide secondary brand bar items on mobile */
+  .top-brand-company { display: none !important; }
+  .top-brand-search { display: none !important; }
+  .top-brand-pro { display: none !important; }
 
   /* Tables scroll horizontally */
   table {
@@ -160,5 +201,14 @@ th,
 @media (max-width: 480px) {
   body {
     font-size: 13px;
+  }
+
+  .dashboard-content {
+    padding: 8px !important;
+  }
+
+  /* All 2-column inline grids to single column */
+  .dashboard-content [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
   }
 }

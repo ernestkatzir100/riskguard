@@ -88,7 +88,7 @@ export function TaskForm({ mode, initialData, onSubmit, onCancel }: TaskFormProp
       {/* title */}
       <div style={fieldStyle}>
         <label style={labelStyle}>כותרת *</label>
-        <input style={inputStyle} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם המשימה" />
+        <input style={{ ...inputStyle, ...(errors.title ? { borderColor: C.danger } : {}) }} value={form.title} onChange={e => set('title', e.target.value)} placeholder="שם המשימה" />
         {errors.title && <div style={errorStyle}>{errors.title}</div>}
       </div>
 

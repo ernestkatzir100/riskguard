@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Plus, CheckCircle, FilePen, AlertTriangle, X, Loader2, Eye } from 'lucide-react';
+import { FileText, Plus, CheckCircle, FilePen, AlertTriangle, X, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { C } from '@/shared/lib/design-tokens';
 import { FormModal } from '@/shared/components/form-modal';
 import { DocumentForm } from '@/shared/components/forms/document-form';
-import { getDocuments, createDocument, updateDocumentStatus } from '@/app/actions/documents';
+import { getDocuments, createDocument, updateDocument, deleteDocument, updateDocumentStatus } from '@/app/actions/documents';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══ Types ═══ */
 type DocType = 'policy' | 'procedure' | 'report' | 'protocol';
@@ -20,6 +22,8 @@ type Doc = {
   date: string;
   version: string;
   owner: string;
+  dbStatus?: string;
+  expiresAt?: string;
 };
 
 /* ═══ Demo Data ═══ */
@@ -183,6 +187,14 @@ export default function DocumentsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [editDoc, setEditDoc] = useState<Doc | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Doc | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -198,9 +210,11 @@ export default function DocumentsPage() {
           type: (['policy','procedure','report','protocol'].includes(String(d.type)) ? String(d.type) : 'report') as DocType,
           module: String(d.module ?? 'governance'),
           status: statusMap[String(d.status)] ?? 'draft',
+          dbStatus: String(d.status ?? 'draft'),
           date: d.updatedAt ? new Date(d.updatedAt as string).toLocaleDateString('he-IL') : '—',
           version: String(d.version ?? '1.0'),
           owner: String(d.createdBy ?? 'מערכת'),
+          expiresAt: d.expiresAt ? new Date(d.expiresAt as string).toISOString().split('T')[0] : '',
         }));
         setDocs(mapped);
       }
@@ -238,10 +252,26 @@ export default function DocumentsPage() {
       await createDocument(data);
       setShowForm(false);
       await loadData();
+      showToast('המסמך נוצר בהצלחה');
     } catch {
-      /* handle error silently */
+      showToast('שגיאה ביצירת המסמך', 'error');
     } finally {
       setFormLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const prev = [...docs];
+    setDocs(d => d.filter(x => x.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    setSelectedDoc(null);
+    try {
+      await deleteDocument(deleteTarget.id);
+      showToast('המסמך נמחק בהצלחה');
+    } catch {
+      setDocs(prev);
+      showToast('שגיאה במחיקת המסמך', 'error');
     }
   }
 
@@ -254,6 +284,9 @@ export default function DocumentsPage() {
       setDocs(prev => prev.map(d => d.id === id ? { ...d, status: newStatus as DocStatus } : d));
     }
   }
+
+  if (loading) return <PageSkeleton />;
+  if (docs.length === 0) return <EmptyState {...EMPTY_STATES['documents']} />;
 
   return (
     <div style={{ direction: 'rtl', fontFamily: 'var(--font-assistant)', color: C.text, padding: 24 }}>
@@ -483,16 +516,24 @@ export default function DocumentsPage() {
                 <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>
                   {selected.id}
                 </span>
-                <button
-                  onClick={() => setSelectedDoc(null)}
-                  style={{
-                    background: C.borderLight, border: 'none', borderRadius: 6,
-                    width: 28, height: 28, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <X size={14} color={C.textSec} />
-                </button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button onClick={() => setEditDoc(selected)} title="ערוך" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                    <Pencil size={12} color={C.textSec} />
+                  </button>
+                  <button onClick={() => setDeleteTarget(selected)} title="מחק" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                    <Trash2 size={12} color={C.danger} />
+                  </button>
+                  <button
+                    onClick={() => setSelectedDoc(null)}
+                    style={{
+                      background: C.borderLight, border: 'none', borderRadius: 6,
+                      width: 28, height: 28, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <X size={14} color={C.textSec} />
+                  </button>
+                </div>
               </div>
 
               {/* Title */}
@@ -595,6 +636,7 @@ export default function DocumentsPage() {
         onSubmit={() => {}}
         loading={formLoading}
         submitLabel="הוסף מסמך"
+        hideFooter
       >
         <DocumentForm
           mode="create"
@@ -604,6 +646,69 @@ export default function DocumentsPage() {
           onCancel={() => setShowForm(false)}
         />
       </FormModal>
+
+      {/* Edit Document Modal */}
+      <FormModal
+        open={!!editDoc}
+        onClose={() => setEditDoc(null)}
+        title="עריכת מסמך"
+        onSubmit={() => {}}
+        hideFooter
+      >
+        {editDoc && (
+          <DocumentForm
+            mode="edit"
+            initialData={{
+              title: editDoc.title,
+              type: editDoc.type,
+              module: editDoc.module,
+              version: editDoc.version,
+              status: editDoc.dbStatus ?? 'draft',
+              expiresAt: editDoc.expiresAt ?? '',
+            }}
+            onSubmit={async (data) => {
+              try {
+                await updateDocument(editDoc.id, data);
+                setEditDoc(null);
+                await loadData();
+                showToast('המסמך עודכן בהצלחה');
+              } catch {
+                showToast('שגיאה בעדכון המסמך', 'error');
+              }
+            }}
+            onCancel={() => setEditDoc(null)}
+          />
+        )}
+      </FormModal>
+
+      {/* Delete Confirmation */}
+      <FormModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="מחיקת מסמך"
+        onSubmit={handleDelete}
+        submitLabel="מחק"
+      >
+        <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+          האם למחוק את המסמך <strong>&quot;{deleteTarget?.title}&quot;</strong>?
+        </p>
+        <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+          פעולה זו אינה הפיכה.
+        </p>
+      </FormModal>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? C.success : C.danger,
+          color: 'white', padding: '10px 24px', borderRadius: 10,
+          fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+          zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        }}>
+          {toast.message}
+        </div>
+      )}
 
       {/* Spin animation for loader */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

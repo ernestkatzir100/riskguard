@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, Plus, Clock, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { CheckSquare, Plus, Clock, AlertTriangle, CheckCircle, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { C } from '@/shared/lib/design-tokens';
 import { FormModal } from '@/shared/components/form-modal';
 import { TaskForm } from '@/shared/components/forms/task-form';
-import { getTasks, createTask, updateTaskStatus, completeTask } from '@/app/actions/tasks';
+import { getTasks, createTask, updateTask, deleteTask, updateTaskStatus, completeTask } from '@/app/actions/tasks';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══ Types ═══ */
 type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'overdue';
@@ -19,6 +21,8 @@ type Task = {
   status: TaskStatus;
   assignedTo: string;
   priority: TaskPriority;
+  description?: string;
+  dueDateRaw?: string;
 };
 
 /* ═══ Demo Data ═══ */
@@ -143,6 +147,14 @@ export default function TasksPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -153,9 +165,11 @@ export default function TasksPage() {
           title: String(t.title ?? ''),
           module: String(t.module ?? 'governance'),
           dueDate: t.dueDate ? new Date(t.dueDate as string).toLocaleDateString('he-IL') : '—',
+          dueDateRaw: t.dueDate ? new Date(t.dueDate as string).toISOString().split('T')[0] : '',
           status: String(t.status ?? 'pending') as TaskStatus,
           assignedTo: String(t.assignedTo ?? 'לא שויך'),
           priority: String(t.priority ?? 'medium') as TaskPriority,
+          description: String(t.description ?? ''),
         }));
         setTasks(mapped);
       }
@@ -190,8 +204,9 @@ export default function TasksPage() {
       await createTask(data);
       setShowForm(false);
       await loadData();
+      showToast('המשימה נוצרה בהצלחה');
     } catch {
-      /* handle error silently, form stays open */
+      showToast('שגיאה ביצירת המשימה', 'error');
     } finally {
       setFormLoading(false);
     }
@@ -212,10 +227,26 @@ export default function TasksPage() {
       await updateTaskStatus(id, newStatus);
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
     } catch {
-      /* fallback: update locally */
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
     }
   }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const prev = [...tasks];
+    setTasks(t => t.filter(x => x.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    try {
+      await deleteTask(deleteTarget.id);
+      showToast('המשימה נמחקה בהצלחה');
+    } catch {
+      setTasks(prev);
+      showToast('שגיאה במחיקת המשימה', 'error');
+    }
+  }
+
+  if (loading) return <PageSkeleton />;
+  if (tasks.length === 0) return <EmptyState {...EMPTY_STATES['tasks']} />;
 
   return (
     <div style={{ direction: 'rtl', fontFamily: 'var(--font-assistant)', color: C.text, padding: 24 }}>
@@ -451,6 +482,26 @@ export default function TasksPage() {
                                 טפל
                               </button>
                             )}
+                            <button
+                              onClick={() => setEditTask(task)}
+                              title="ערוך"
+                              style={{
+                                background: 'none', border: `1px solid ${C.border}`,
+                                borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+                              }}
+                            >
+                              <Pencil size={12} color={C.textSec} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(task)}
+                              title="מחק"
+                              style={{
+                                background: 'none', border: `1px solid ${C.border}`,
+                                borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+                              }}
+                            >
+                              <Trash2 size={12} color={C.danger} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -471,6 +522,7 @@ export default function TasksPage() {
         onSubmit={() => {}}
         loading={formLoading}
         submitLabel="הוסף משימה"
+        hideFooter
       >
         <TaskForm
           mode="create"
@@ -480,6 +532,69 @@ export default function TasksPage() {
           onCancel={() => setShowForm(false)}
         />
       </FormModal>
+
+      {/* Edit Task Modal */}
+      <FormModal
+        open={!!editTask}
+        onClose={() => setEditTask(null)}
+        title="עריכת משימה"
+        onSubmit={() => {}}
+        hideFooter
+      >
+        {editTask && (
+          <TaskForm
+            mode="edit"
+            initialData={{
+              title: editTask.title,
+              description: editTask.description ?? '',
+              module: editTask.module,
+              priority: editTask.priority,
+              dueDate: editTask.dueDateRaw ?? '',
+              assignedTo: editTask.assignedTo === 'לא שויך' ? '' : editTask.assignedTo,
+            }}
+            onSubmit={async (data) => {
+              try {
+                await updateTask(editTask.id, data);
+                setEditTask(null);
+                await loadData();
+                showToast('המשימה עודכנה בהצלחה');
+              } catch {
+                showToast('שגיאה בעדכון המשימה', 'error');
+              }
+            }}
+            onCancel={() => setEditTask(null)}
+          />
+        )}
+      </FormModal>
+
+      {/* Delete Confirmation */}
+      <FormModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="מחיקת משימה"
+        onSubmit={handleDelete}
+        submitLabel="מחק"
+      >
+        <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+          האם למחוק את המשימה <strong>&quot;{deleteTarget?.title}&quot;</strong>?
+        </p>
+        <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+          פעולה זו אינה הפיכה.
+        </p>
+      </FormModal>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? C.success : C.danger,
+          color: 'white', padding: '10px 24px', borderRadius: 10,
+          fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+          zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        }}>
+          {toast.message}
+        </div>
+      )}
 
       {/* Spin animation for loader */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

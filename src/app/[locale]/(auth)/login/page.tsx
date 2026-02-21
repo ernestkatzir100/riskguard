@@ -146,9 +146,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
               style={{
                 position: 'absolute', left: 12, top: 10,
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 4,
               }}
             >
               {showPassword ? <EyeOff size={16} color={C.textMuted} /> : <Eye size={16} color={C.textMuted} />}

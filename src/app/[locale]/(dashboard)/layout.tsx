@@ -2,6 +2,7 @@ import { TopNav } from '@/shared/components/top-nav';
 import { NuTelaBubble } from '@/shared/components/nutela-bubble';
 import { PageHeader } from '@/shared/components/page-header';
 import { GlobalSearch } from '@/shared/components/global-search';
+import { ErrorBoundary } from '@/shared/components/error-boundary';
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function DashboardLayout({
     <div style={{ background: '#F5F7FA', minHeight: '100vh', fontFamily: 'var(--font-assistant)' }}>
       <TopNav />
       <div
+        className="dashboard-content"
         style={{
           padding: '24px 32px',
           maxWidth: 1400,
@@ -20,7 +22,9 @@ export default function DashboardLayout({
         }}
       >
         <PageHeader />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </div>
       <NuTelaBubble />
       <GlobalSearch />

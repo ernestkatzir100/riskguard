@@ -30,6 +30,12 @@ export async function updateCyberIncident(id: string, data: unknown) {
   return updated;
 }
 
+export async function deleteCyberIncident(id: string) {
+  const user = await getCurrentUserOrDemo();
+  await db.delete(cyberIncidents).where(and(eq(cyberIncidents.id, id), eq(cyberIncidents.tenantId, user.tenant_id)));
+  await logAction({ action: 'cyber_incident.deleted', entity_type: 'cyber_incident', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
+}
+
 export async function getPenTests() {
   const user = await getCurrentUserOrDemo();
   return db.select().from(penTests).where(eq(penTests.tenantId, user.tenant_id)).orderBy(desc(penTests.testDate));

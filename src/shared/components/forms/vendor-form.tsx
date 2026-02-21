@@ -95,7 +95,7 @@ export function VendorForm({ mode, initialData, onSubmit, onCancel }: VendorForm
       {/* name */}
       <div style={fieldStyle}>
         <label style={labelStyle}>שם הספק *</label>
-        <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="שם הספק" />
+        <input style={{ ...inputStyle, ...(errors.name ? { borderColor: C.danger } : {}) }} value={form.name} onChange={e => set('name', e.target.value)} placeholder="שם הספק" />
         {errors.name && <div style={errorStyle}>{errors.name}</div>}
       </div>
 
@@ -129,7 +129,7 @@ export function VendorForm({ mode, initialData, onSubmit, onCancel }: VendorForm
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>סיום חוזה</label>
-          <input style={inputStyle} type="date" value={form.contractEnd} onChange={e => set('contractEnd', e.target.value)} />
+          <input style={{ ...inputStyle, ...(errors.contractEnd ? { borderColor: C.danger } : {}) }} type="date" value={form.contractEnd} onChange={e => set('contractEnd', e.target.value)} />
           {errors.contractEnd && <div style={errorStyle}>{errors.contractEnd}</div>}
         </div>
       </div>
@@ -156,7 +156,7 @@ export function VendorForm({ mode, initialData, onSubmit, onCancel }: VendorForm
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>אימייל</label>
-          <input style={inputStyle} type="email" value={form.contactEmail} onChange={e => set('contactEmail', e.target.value)} placeholder="email@example.com" dir="ltr" />
+          <input style={{ ...inputStyle, ...(errors.contactEmail ? { borderColor: C.danger } : {}) }} type="email" value={form.contactEmail} onChange={e => set('contactEmail', e.target.value)} placeholder="email@example.com" dir="ltr" />
           {errors.contactEmail && <div style={errorStyle}>{errors.contactEmail}</div>}
         </div>
       </div>

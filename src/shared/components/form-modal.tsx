@@ -12,9 +12,10 @@ type FormModalProps = {
   onSubmit: () => void | Promise<void>;
   loading?: boolean;
   submitLabel?: string;
+  hideFooter?: boolean;
 };
 
-export function FormModal({ open, onClose, title, children, onSubmit, loading, submitLabel = 'שמור' }: FormModalProps) {
+export function FormModal({ open, onClose, title, children, onSubmit, loading, submitLabel = 'שמור', hideFooter }: FormModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export function FormModal({ open, onClose, title, children, onSubmit, loading, s
         </div>
 
         {/* Footer */}
+        {!hideFooter && (
         <div style={{
           display: 'flex', gap: 10, justifyContent: 'flex-start',
           padding: '16px 24px', borderTop: `1px solid ${C.border}`,
@@ -87,6 +89,7 @@ export function FormModal({ open, onClose, title, children, onSubmit, loading, s
             ביטול
           </button>
         </div>
+        )}
       </div>
     </div>
   );

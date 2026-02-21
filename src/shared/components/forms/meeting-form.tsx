@@ -67,7 +67,7 @@ export function MeetingForm({ mode, initialData, onSubmit, onCancel }: MeetingFo
       {/* meetingType */}
       <div style={fieldStyle}>
         <label style={labelStyle}>סוג ישיבה *</label>
-        <input style={inputStyle} value={form.meetingType} onChange={e => set('meetingType', e.target.value)} placeholder='לדוגמה: ישיבת דירקטוריון רבעונית' />
+        <input style={{ ...inputStyle, ...(errors.meetingType ? { borderColor: C.danger } : {}) }} value={form.meetingType} onChange={e => set('meetingType', e.target.value)} placeholder='לדוגמה: ישיבת דירקטוריון רבעונית' />
         {errors.meetingType && <div style={errorStyle}>{errors.meetingType}</div>}
       </div>
 
@@ -75,7 +75,7 @@ export function MeetingForm({ mode, initialData, onSubmit, onCancel }: MeetingFo
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>תאריך *</label>
-          <input style={inputStyle} type="date" value={form.date} onChange={e => set('date', e.target.value)} />
+          <input style={{ ...inputStyle, ...(errors.date ? { borderColor: C.danger } : {}) }} type="date" value={form.date} onChange={e => set('date', e.target.value)} />
           {errors.date && <div style={errorStyle}>{errors.date}</div>}
         </div>
         <div style={{ flex: 1 }}>

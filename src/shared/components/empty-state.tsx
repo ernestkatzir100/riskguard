@@ -1,6 +1,6 @@
 'use client';
 
-import { Inbox, Shield, BarChart3, FileText, Users, Zap, type LucideIcon } from 'lucide-react';
+import { Inbox, Shield, BarChart3, FileText, Users, Zap, CheckSquare, Briefcase, FileWarning, type LucideIcon } from 'lucide-react';
 
 /**
  * Empty State — Hebrew message + icon + optional action button.
@@ -30,6 +30,10 @@ export const EMPTY_STATES: Record<string, { icon: LucideIcon; title: string; des
   'cyber-incidents': { icon: Zap, title: 'אין אירועי סייבר', description: 'מצוין! לא דווחו אירועי סייבר.', actionLabel: 'דווח אירוע' },
   'reports': { icon: FileText, title: 'אין דוחות', description: 'צור דוח ראשון לדירקטוריון.', actionLabel: 'צור דוח' },
   'kri': { icon: BarChart3, title: 'אין מדדי סיכון', description: 'הגדר KRIs כדי לנטר את רמת הסיכון.', actionLabel: 'הגדר KRI' },
+  'tasks': { icon: CheckSquare, title: 'אין משימות', description: 'צור משימות לניהול ומעקב אחר פעולות נדרשות.', actionLabel: 'הוסף משימה' },
+  'documents': { icon: FileText, title: 'אין מסמכים', description: 'העלה מסמכים רגולטוריים ומדיניות.', actionLabel: 'הוסף מסמך' },
+  'board': { icon: Briefcase, title: 'אין ישיבות מתוכננות', description: 'הוסף ישיבות דירקטוריון לניהול הממשל התאגידי.', actionLabel: 'הוסף ישיבה' },
+  'event-reporting': { icon: FileWarning, title: 'אין אירועי הפסד', description: 'דווח על אירועי הפסד לעמידה בדרישות הרגולציה.', actionLabel: 'דווח אירוע' },
   'default': { icon: Inbox, title: 'אין נתונים', description: 'לא נמצאו נתונים להצגה.', actionLabel: 'התחל' },
 };
 

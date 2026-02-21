@@ -3,12 +3,39 @@ import { db } from '@/db';
 import { kris } from '@/db/schema';
 import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
-import { updateKRISchema } from '@/shared/lib/validators';
+import { createKRISchema, updateKRISchema } from '@/shared/lib/validators';
 import { eq, and } from 'drizzle-orm';
 
 export async function getKRIs() {
   const user = await getCurrentUserOrDemo();
   return db.select().from(kris).where(eq(kris.tenantId, user.tenant_id));
+}
+
+export async function createKRI(data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createKRISchema.parse(data);
+  const [created] = await db.insert(kris).values({ tenantId: user.tenant_id, ...parsed }).returning();
+  await logAction({
+    action: 'kri.created',
+    entity_type: 'kri',
+    entity_id: created.id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+    details: { name: parsed.name },
+  });
+  return created;
+}
+
+export async function deleteKRI(id: string) {
+  const user = await getCurrentUserOrDemo();
+  await db.delete(kris).where(and(eq(kris.id, id), eq(kris.tenantId, user.tenant_id)));
+  await logAction({
+    action: 'kri.deleted',
+    entity_type: 'kri',
+    entity_id: id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+  });
 }
 
 export async function updateKRI(id: string, data: unknown) {

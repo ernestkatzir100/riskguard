@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import {
   Handshake, Shield, CheckSquare,
-  X, BookOpen, Activity,
+  X, BookOpen, Activity, Pencil, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getVendors, createVendor } from '@/app/actions/vendors';
+import { getVendors, createVendor, updateVendor, deleteVendor } from '@/app/actions/vendors';
 import { FormModal } from '@/shared/components/form-modal';
 import { VendorForm } from '@/shared/components/forms/vendor-form';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══ Vendor Data — from V11 ═══ */
 type Assessment = { date: string; score: number; status: string; assessor: string };
@@ -84,9 +86,18 @@ const CRIT_COLORS = { 'קריטי': { c: C.danger, bg: C.dangerBg }, 'גבוה':
 
 export default function OutsourcingPage() {
   const [vendors, setVendors] = useState<Vendor[]>(VENDORS);
+  const [loading, setLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [filterCrit, setFilterCrit] = useState<string>('הכל');
   const [showAddVendor, setShowAddVendor] = useState(false);
+  const [editVendor, setEditVendor] = useState<Vendor | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   async function loadData() {
     try {
@@ -112,7 +123,7 @@ export default function OutsourcingPage() {
         }));
         setVendors(mapped);
       }
-    } catch { /* fallback to demo */ }
+    } catch { /* fallback to demo */ } finally { setLoading(false); }
   }
   useEffect(() => { loadData(); }, []);
 
@@ -122,6 +133,9 @@ export default function OutsourcingPage() {
   const criticalCount = vendors.filter(v => v.criticality === 'קריטי').length;
   const noExitCount = vendors.filter(v => !v.exitStrategy).length;
   const avgScore = Math.round(vendors.reduce((a, v) => a + (v.assessments[0]?.score || 0), 0) / vendors.length);
+
+  if (loading) return <PageSkeleton />;
+  if (vendors.length === 0) return <EmptyState {...EMPTY_STATES['outsourcing']} />;
 
   return (
     <>
@@ -224,7 +238,15 @@ export default function OutsourcingPage() {
           <div style={{ width: 380, background: C.surface, borderInlineStart: `1px solid ${C.border}`, borderRadius: '12px 0 0 12px', padding: 20, overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>{selected.id}</span>
-              <button onClick={() => setSelectedVendor(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} color={C.textSec} /></button>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <button onClick={() => setEditVendor(selected)} title="ערוך" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                  <Pencil size={12} color={C.textSec} />
+                </button>
+                <button onClick={() => setDeleteTarget(selected)} title="מחק" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                  <Trash2 size={12} color={C.danger} />
+                </button>
+                <button onClick={() => setSelectedVendor(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} color={C.textSec} /></button>
+              </div>
             </div>
 
             <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 4 }}>{selected.name}</h3>
@@ -305,17 +327,104 @@ export default function OutsourcingPage() {
       onClose={() => setShowAddVendor(false)}
       title="הוסף ספק חדש"
       onSubmit={() => {}}
+      hideFooter
     >
       <VendorForm
         mode="create"
         onSubmit={async (data) => {
-          await createVendor(data);
-          setShowAddVendor(false);
-          await loadData();
+          try {
+            await createVendor(data);
+            setShowAddVendor(false);
+            await loadData();
+            showToast('הספק נוסף בהצלחה');
+          } catch {
+            showToast('שגיאה בהוספת הספק', 'error');
+          }
         }}
         onCancel={() => setShowAddVendor(false)}
       />
     </FormModal>
+
+    {/* Edit Vendor Modal */}
+    <FormModal
+      open={!!editVendor}
+      onClose={() => setEditVendor(null)}
+      title="עריכת ספק"
+      onSubmit={() => {}}
+      hideFooter
+    >
+      {editVendor && (
+        <VendorForm
+          mode="edit"
+          initialData={{
+            name: editVendor.name,
+            serviceDescription: editVendor.service,
+            criticality: editVendor.criticality === 'קריטי' ? 'critical' : editVendor.criticality === 'גבוה' ? 'important' : 'standard',
+            status: 'active',
+            contractEnd: '',
+            contractStart: '',
+            annualValueNis: '',
+            riskRating: editVendor.riskRating,
+            contactName: editVendor.contact,
+            contactEmail: editVendor.email,
+          }}
+          onSubmit={async (data) => {
+            try {
+              await updateVendor(editVendor.id, data);
+              setEditVendor(null);
+              setSelectedVendor(null);
+              await loadData();
+              showToast('הספק עודכן בהצלחה');
+            } catch {
+              showToast('שגיאה בעדכון הספק', 'error');
+            }
+          }}
+          onCancel={() => setEditVendor(null)}
+        />
+      )}
+    </FormModal>
+
+    {/* Delete Confirmation */}
+    <FormModal
+      open={!!deleteTarget}
+      onClose={() => setDeleteTarget(null)}
+      title="מחיקת ספק"
+      onSubmit={async () => {
+        if (!deleteTarget) return;
+        const prev = [...vendors];
+        setVendors(v => v.filter(x => x.id !== deleteTarget.id));
+        setDeleteTarget(null);
+        setSelectedVendor(null);
+        try {
+          await deleteVendor(deleteTarget.id);
+          showToast('הספק נמחק בהצלחה');
+        } catch {
+          setVendors(prev);
+          showToast('שגיאה במחיקת הספק', 'error');
+        }
+      }}
+      submitLabel="מחק"
+    >
+      <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+        האם למחוק את הספק <strong>&quot;{deleteTarget?.name}&quot;</strong>?
+      </p>
+      <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+        פעולה זו אינה הפיכה.
+      </p>
+    </FormModal>
+
+    {/* Toast */}
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+        background: toast.type === 'success' ? C.success : C.danger,
+        color: 'white', padding: '10px 24px', borderRadius: 10,
+        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+        zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      }}>
+        {toast.message}
+      </div>
+    )}
     </>
   );
 }

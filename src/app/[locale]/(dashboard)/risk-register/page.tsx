@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart3, Grid3X3, List, X, Pencil, Save,
-  Shield, Info, BookOpen,
+  Shield, Info, BookOpen, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getRisks, createRisk } from '@/app/actions/risks';
+import { getRisks, createRisk, updateRisk, deleteRisk } from '@/app/actions/risks';
 import { FormModal } from '@/shared/components/form-modal';
 import { RiskForm } from '@/shared/components/forms/risk-form';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══════════════════════════════════════════════
    Risk & Control constants
@@ -63,6 +65,10 @@ type Risk = {
   reqId: string;
   controls: Control[];
   tier?: string;
+  probability?: number;
+  impact?: number;
+  description?: string;
+  status?: string;
 };
 
 const calcResidual = (inherent: number, controls: Control[]) => {
@@ -239,12 +245,16 @@ const RISK_BANK: Risk[] = [
    ═══════════════════════════════════════════════ */
 export default function RiskRegisterPage() {
   const [risks, setRisks] = useState<Risk[]>(RISK_BANK);
+  const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('הכל');
   const [view, setView] = useState<'heatmap' | 'table'>('heatmap');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [showAddRisk, setShowAddRisk] = useState(false);
+  const [editRisk, setEditRisk] = useState<Risk | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Risk | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   async function loadData() {
     try {
@@ -261,10 +271,14 @@ export default function RiskRegisterPage() {
           reqId: String(r.reqCode ?? ''),
           controls: [],
           tier: undefined,
+          probability: Number(r.probability ?? 3),
+          impact: Number(r.impact ?? 3),
+          description: String(r.description ?? ''),
+          status: String(r.status ?? 'open'),
         }));
         setRisks(mapped);
       }
-    } catch { /* fallback to demo */ }
+    } catch { /* fallback to demo */ } finally { setLoading(false); }
   }
   useEffect(() => { loadData(); }, []);
 
@@ -284,8 +298,31 @@ export default function RiskRegisterPage() {
     setEditingName(false);
   };
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const removedRisk = deleteTarget;
+    setRisks(prev => prev.filter(r => r.id !== removedRisk.id));
+    setSelectedId(null);
+    setDeleteTarget(null);
+    try {
+      await deleteRisk(removedRisk.id);
+      showToast('הסיכון נמחק בהצלחה', 'success');
+    } catch {
+      setRisks(prev => [...prev, removedRisk]);
+      showToast('שגיאה במחיקת הסיכון', 'error');
+    }
+  }
+
   const totalControls = risks.reduce((a, r) => a + r.controls.length, 0);
   const avgResidual = (risks.reduce((a, r) => a + calcResidual(r.inherent, r.controls), 0) / risks.length).toFixed(1);
+
+  if (loading) return <PageSkeleton />;
+  if (risks.length === 0) return <EmptyState {...EMPTY_STATES['risk-register']} />;
 
   return (
     <>
@@ -520,9 +557,17 @@ export default function RiskRegisterPage() {
           <div style={{ width: 380, background: C.surface, borderRight: `1px solid ${C.border}`, borderRadius: '12px 0 0 12px', padding: 20, overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>{selected.id} · {selected.cat}</span>
-              <button onClick={() => setSelectedId(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={14} color={C.textSec} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => setEditRisk(selected)} title="ערוך סיכון" style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={12} color={C.accent} />
+                </button>
+                <button onClick={() => setDeleteTarget(selected)} title="מחק סיכון" style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={12} color={C.danger} />
+                </button>
+                <button onClick={() => setSelectedId(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={14} color={C.textSec} />
+                </button>
+              </div>
             </div>
 
             {/* Risk name — editable */}
@@ -629,22 +674,91 @@ export default function RiskRegisterPage() {
         )}
       </div>
     </div>
-    <FormModal
-      open={showAddRisk}
-      onClose={() => setShowAddRisk(false)}
-      title="הוסף סיכון חדש"
-      onSubmit={() => {}}
-    >
+    {/* Create Risk Modal */}
+    <FormModal open={showAddRisk} onClose={() => setShowAddRisk(false)} title="הוסף סיכון חדש" onSubmit={() => {}} hideFooter>
       <RiskForm
         mode="create"
         onSubmit={async (data) => {
-          await createRisk(data);
-          setShowAddRisk(false);
-          await loadData();
+          try {
+            await createRisk(data);
+            showToast('הסיכון נוצר בהצלחה', 'success');
+            setShowAddRisk(false);
+            await loadData();
+          } catch {
+            showToast('שגיאה ביצירת הסיכון', 'error');
+          }
         }}
         onCancel={() => setShowAddRisk(false)}
       />
     </FormModal>
+
+    {/* Edit Risk Modal */}
+    <FormModal open={!!editRisk} onClose={() => setEditRisk(null)} title="עריכת סיכון" onSubmit={() => {}} hideFooter>
+      {editRisk && (
+        <RiskForm
+          mode="edit"
+          initialData={{
+            title: editRisk.name,
+            description: editRisk.description ?? '',
+            category: editRisk.cat,
+            probability: editRisk.probability ?? 3,
+            impact: editRisk.impact ?? 3,
+            status: editRisk.status ?? 'open',
+            regulationCode: editRisk.reg,
+            sectionRef: editRisk.section,
+            reqCode: editRisk.reqId,
+          }}
+          onSubmit={async (data) => {
+            try {
+              await updateRisk(editRisk.id, data);
+              showToast('הסיכון עודכן בהצלחה', 'success');
+              setEditRisk(null);
+              setSelectedId(null);
+              await loadData();
+            } catch {
+              showToast('שגיאה בעדכון הסיכון', 'error');
+            }
+          }}
+          onCancel={() => setEditRisk(null)}
+        />
+      )}
+    </FormModal>
+
+    {/* Delete Confirmation Dialog */}
+    {deleteTarget && (
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+      >
+        <div style={{ background: C.surface, borderRadius: 16, width: '100%', maxWidth: 400, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 8px' }}>מחיקת סיכון</h3>
+          <p style={{ fontSize: 13, color: C.textSec, fontFamily: 'var(--font-assistant)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            האם אתה בטוח שברצונך למחוק את הסיכון <strong>&quot;{deleteTarget.name}&quot;</strong>? פעולה זו אינה הפיכה.
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={handleDelete} style={{ padding: '8px 20px', background: C.danger, color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>
+              מחק
+            </button>
+            <button onClick={() => setDeleteTarget(null)} style={{ padding: '8px 20px', background: 'none', color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>
+              ביטול
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Toast Notification */}
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 400,
+        padding: '10px 24px', borderRadius: 10,
+        background: toast.type === 'success' ? C.success : C.danger,
+        color: 'white', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      }}>
+        {toast.message}
+      </div>
+    )}
     </>
   );
 }

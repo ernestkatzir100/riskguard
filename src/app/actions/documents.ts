@@ -60,6 +60,40 @@ export async function updateDocumentStatus(id: string, status: 'draft' | 'pendin
   return updated;
 }
 
+export async function updateDocument(id: string, data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createDocumentSchema.partial().parse(data);
+  const { expiresAt, ...rest } = parsed;
+  const values: Record<string, unknown> = { ...rest, updatedAt: new Date() };
+  if (expiresAt) values.expiresAt = new Date(expiresAt);
+  const [updated] = await db.update(documents)
+    .set(values)
+    .where(and(eq(documents.id, id), eq(documents.tenantId, user.tenant_id)))
+    .returning();
+  if (!updated) throw new Error('Document not found');
+  await logAction({
+    action: 'document.updated',
+    entity_type: 'document',
+    entity_id: id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+    details: parsed as Record<string, unknown>,
+  });
+  return updated;
+}
+
+export async function deleteDocument(id: string) {
+  const user = await getCurrentUserOrDemo();
+  await db.delete(documents).where(and(eq(documents.id, id), eq(documents.tenantId, user.tenant_id)));
+  await logAction({
+    action: 'document.deleted',
+    entity_type: 'document',
+    entity_id: id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+  });
+}
+
 export async function uploadDocumentFile(documentId: string, formData: FormData) {
   const user = await getCurrentUserOrDemo();
 

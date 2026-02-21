@@ -36,6 +36,14 @@ export async function updateVendor(id: string, data: unknown) {
   return updated;
 }
 
+export async function deleteVendor(id: string) {
+  const user = await getCurrentUserOrDemo();
+  // Delete assessments first
+  await db.delete(vendorAssessments).where(eq(vendorAssessments.vendorId, id));
+  await db.delete(vendors).where(and(eq(vendors.id, id), eq(vendors.tenantId, user.tenant_id)));
+  await logAction({ action: 'vendor.deleted', entity_type: 'vendor', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
+}
+
 export async function createVendorAssessment(data: unknown) {
   const user = await getCurrentUserOrDemo();
   const parsed = createVendorAssessmentSchema.parse(data);

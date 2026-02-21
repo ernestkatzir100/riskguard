@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import {
   ShieldCheck, AlertTriangle, FileText, Clock,
-  BookOpen, Activity, Shield, Sparkles,
+  BookOpen, Activity, Shield, Sparkles, Plus, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getBCPPlan, getCriticalFunctions, getBCPTests } from '@/app/actions/bcp';
+import { getBCPPlan, getCriticalFunctions, getBCPTests, createBCPTest, deleteBCPTest } from '@/app/actions/bcp';
+import { FormModal } from '@/shared/components/form-modal';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
 
 /* ═══ BCP Data ═══ */
 const BCP_DOCUMENTS: { id: string; name: string; version: string; date: string; status: 'approved' | 'draft' | 'review' | 'missing' }[] = [
@@ -57,9 +59,56 @@ const TEST_STATUS = {
 const IMPACT_COLORS: Record<string, string> = { 'קריטי': C.danger, 'גבוה': '#E8875B', 'בינוני': C.warning };
 
 export default function BCPPage() {
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'bia' | 'dr'>('overview');
   const [biaProcesses, setBiaProcesses] = useState(BIA_PROCESSES);
-  const [drTests, setDrTests] = useState(DR_TESTS);
+  const [drTests, setDrTests] = useState<{ id?: string; type: string; frequency: string; lastTest: string; nextDue: string; status: 'ok' | 'upcoming' | 'overdue' | 'missing' }[]>(DR_TESTS);
+  const [showAddTest, setShowAddTest] = useState(false);
+  const [testForm, setTestForm] = useState({ testType: '', testDate: '', scenario: '', results: '', nextTestDate: '' });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [deleteTestTarget, setDeleteTestTarget] = useState<{ id?: string; type: string } | null>(null);
+  const [testErrors, setTestErrors] = useState<Record<string, string>>({});
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  async function handleCreateTest() {
+    const te: Record<string, string> = {};
+    if (!testForm.testType.trim()) te.testType = 'סוג תרגיל נדרש';
+    if (!testForm.testDate) te.testDate = 'תאריך ביצוע נדרש';
+    setTestErrors(te);
+    if (Object.keys(te).length > 0) return;
+    try {
+      await createBCPTest({ ...testForm, participants: [] });
+      showToast('תרגיל נוצר בהצלחה');
+      setShowAddTest(false);
+      setTestForm({ testType: '', testDate: '', scenario: '', results: '', nextTestDate: '' });
+      const testsRes = await getBCPTests();
+      if (testsRes?.length) {
+        setDrTests(testsRes.map((t: Record<string, unknown>) => ({
+          id: String(t.id ?? ''),
+          type: String(t.testType ?? ''),
+          frequency: '—',
+          lastTest: t.testDate ? new Date(t.testDate as string).toLocaleDateString('he-IL') : '—',
+          nextDue: t.nextTestDate ? new Date(t.nextTestDate as string).toLocaleDateString('he-IL') : '—',
+          status: 'ok' as const,
+        })));
+      }
+    } catch { showToast('שגיאה ביצירת תרגיל', 'error'); }
+  }
+
+  async function handleDeleteTest() {
+    if (!deleteTestTarget) return;
+    const prev = [...drTests];
+    setDrTests(drTests.filter(t => deleteTestTarget.id ? t.id !== deleteTestTarget.id : t.type !== deleteTestTarget.type));
+    setDeleteTestTarget(null);
+    try {
+      if (deleteTestTarget.id) await deleteBCPTest(deleteTestTarget.id);
+      showToast('תרגיל נמחק');
+    } catch { setDrTests(prev); showToast('שגיאה במחיקה', 'error'); }
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -81,6 +130,7 @@ export default function BCPPage() {
         }
         if (testsRes?.length) {
           setDrTests(testsRes.map((t: Record<string, unknown>) => ({
+            id: String(t.id ?? ''),
             type: String(t.testType ?? ''),
             frequency: '—',
             lastTest: t.testDate ? new Date(t.testDate as string).toLocaleDateString('he-IL') : '—',
@@ -88,7 +138,7 @@ export default function BCPPage() {
             status: 'ok' as const,
           })));
         }
-      } catch { /* demo fallback */ }
+      } catch { /* demo fallback */ } finally { setLoading(false); }
     }
     loadData();
   }, []);
@@ -97,6 +147,8 @@ export default function BCPPage() {
   const docApproved = BCP_DOCUMENTS.filter(d => d.status === 'approved').length;
   const docMissing = BCP_DOCUMENTS.filter(d => d.status === 'missing').length;
   const testsOverdue = drTests.filter(t => t.status === 'overdue' || t.status === 'missing').length;
+
+  if (loading) return <PageSkeleton />;
 
   return (
     <div>
@@ -212,13 +264,18 @@ export default function BCPPage() {
 
           {/* Test Schedule */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px', gridColumn: '1 / -1' }}>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Clock size={14} color={C.warning} /> לוח תרגילים ובדיקות
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={14} color={C.warning} /> לוח תרגילים ובדיקות
+              </h3>
+              <button onClick={() => setShowAddTest(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Plus size={12} /> הוסף תרגיל
+              </button>
+            </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>
               <thead>
                 <tr style={{ background: C.borderLight }}>
-                  {['סוג תרגיל', 'תדירות', 'ביצוע אחרון', 'הבא', 'סטטוס'].map(h => (
+                  {['סוג תרגיל', 'תדירות', 'ביצוע אחרון', 'הבא', 'סטטוס', ''].map(h => (
                     <th key={h} style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 600, fontSize: 11, color: C.textSec, fontFamily: 'var(--font-rubik)' }}>{h}</th>
                   ))}
                 </tr>
@@ -234,6 +291,11 @@ export default function BCPPage() {
                       <td style={{ padding: '10px', fontFamily: 'var(--font-rubik)' }}>{t.nextDue}</td>
                       <td style={{ padding: '10px' }}>
                         <span style={{ background: s.bg, color: s.c, fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>{s.l}</span>
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <button onClick={() => setDeleteTestTarget({ id: t.id, type: t.type })} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 5px', cursor: 'pointer' }}>
+                          <Trash2 size={11} color={C.danger} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -363,6 +425,55 @@ export default function BCPPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+      {/* Create Test Modal */}
+      <FormModal open={showAddTest} title="הוספת תרגיל BCP" onClose={() => setShowAddTest(false)} onSubmit={handleCreateTest} hideFooter>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4, fontFamily: 'var(--font-rubik)' }}>סוג תרגיל *</label>
+              <input value={testForm.testType} onChange={e => setTestForm(p => ({ ...p, testType: e.target.value }))} placeholder="למשל: Failover מלא" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${testErrors.testType ? C.danger : C.border}`, fontSize: 13, fontFamily: 'var(--font-assistant)', background: C.surface, color: C.text }} />
+              {testErrors.testType && <div style={{ fontSize: 11, color: C.danger, marginTop: 2, fontFamily: 'var(--font-assistant)' }}>{testErrors.testType}</div>}
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4, fontFamily: 'var(--font-rubik)' }}>תאריך ביצוע *</label>
+              <input type="date" value={testForm.testDate} onChange={e => setTestForm(p => ({ ...p, testDate: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${testErrors.testDate ? C.danger : C.border}`, fontSize: 13, fontFamily: 'var(--font-rubik)', background: C.surface, color: C.text }} />
+              {testErrors.testDate && <div style={{ fontSize: 11, color: C.danger, marginTop: 2, fontFamily: 'var(--font-assistant)' }}>{testErrors.testDate}</div>}
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4, fontFamily: 'var(--font-rubik)' }}>תרחיש</label>
+              <textarea value={testForm.scenario} onChange={e => setTestForm(p => ({ ...p, scenario: e.target.value }))} rows={2} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'var(--font-assistant)', background: C.surface, color: C.text, resize: 'vertical' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4, fontFamily: 'var(--font-rubik)' }}>תוצאות</label>
+              <textarea value={testForm.results} onChange={e => setTestForm(p => ({ ...p, results: e.target.value }))} rows={2} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'var(--font-assistant)', background: C.surface, color: C.text, resize: 'vertical' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4, fontFamily: 'var(--font-rubik)' }}>תאריך תרגיל הבא</label>
+              <input type="date" value={testForm.nextTestDate} onChange={e => setTestForm(p => ({ ...p, nextTestDate: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'var(--font-rubik)', background: C.surface, color: C.text }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start', marginTop: 4 }}>
+              <button onClick={handleCreateTest} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>שמור</button>
+              <button onClick={() => setShowAddTest(false)} style={{ background: C.surface, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>ביטול</button>
+            </div>
+          </div>
+      </FormModal>
+
+      {/* Delete Test Confirmation */}
+      <FormModal open={!!deleteTestTarget} title="מחיקת תרגיל" onClose={() => setDeleteTestTarget(null)} onSubmit={handleDeleteTest} hideFooter>
+          <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: '0 0 16px' }}>
+            למחוק את התרגיל <strong>&quot;{deleteTestTarget?.type}&quot;</strong>?
+          </p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start' }}>
+            <button onClick={handleDeleteTest} style={{ background: C.danger, color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>מחק</button>
+            <button onClick={() => setDeleteTestTarget(null)} style={{ background: C.surface, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>ביטול</button>
+          </div>
+      </FormModal>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'success' ? C.success : C.danger, color: 'white', padding: '10px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+          {toast.message}
         </div>
       )}
     </div>

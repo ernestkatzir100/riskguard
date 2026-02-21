@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import {
   Gauge, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, CheckCircle, AlertCircle, Plus,
+  AlertTriangle, CheckCircle, AlertCircle, Plus, Pencil, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getKRIs, updateKRI } from '@/app/actions/kris';
+import { getKRIs, createKRI, updateKRI, deleteKRI } from '@/app/actions/kris';
 import { FormModal } from '@/shared/components/form-modal';
 import { KRIForm } from '@/shared/components/forms/kri-form';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══════════════════════════════════════════════
    KRI Data
@@ -140,8 +142,17 @@ function Sparkline({ data, status }: { data: number[]; status: Status }) {
    ═══════════════════════════════════════════════ */
 export default function KRIPage() {
   const [filterCat, setFilterCat] = useState('הכל');
+  const [loading, setLoading] = useState(true);
   const [kriData, setKriData] = useState<KRI[]>(KRI_DATA);
   const [showAddKRI, setShowAddKRI] = useState(false);
+  const [editKRI, setEditKRI] = useState<KRI | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<KRI | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -160,7 +171,7 @@ export default function KRIPage() {
         }
       } catch {
         /* silent fallback to demo KRI_DATA */
-      }
+      } finally { setLoading(false); }
     }
     loadData();
   }, []);
@@ -171,6 +182,9 @@ export default function KRIPage() {
   const greenCount = kriData.filter(k => getStatus(k) === 'green').length;
   const yellowCount = kriData.filter(k => getStatus(k) === 'yellow').length;
   const redCount = kriData.filter(k => getStatus(k) === 'red').length;
+
+  if (loading) return <PageSkeleton />;
+  if (kriData.length === 0) return <EmptyState {...EMPTY_STATES['kri']} />;
 
   return (
     <><div style={{ direction: 'rtl' }}>
@@ -404,7 +418,7 @@ export default function KRIPage() {
                   <Sparkline data={trendData} status={status} />
                 </div>
 
-                {/* Trend delta */}
+                {/* Trend delta + actions */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {delta > 0 ? (
@@ -420,12 +434,14 @@ export default function KRIPage() {
                       {delta > 0 ? '+' : ''}{deltaAbs}{kri.unit}
                     </span>
                   </div>
-                  <span style={{
-                    fontSize: 9, color: C.textMuted,
-                    fontFamily: 'var(--font-assistant)',
-                  }}>
-                    6 חודשים אחרונים
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button onClick={() => setEditKRI(kri)} title="ערוך" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 5px', cursor: 'pointer' }}>
+                      <Pencil size={11} color={C.textSec} />
+                    </button>
+                    <button onClick={() => setDeleteTarget(kri)} title="מחק" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 5px', cursor: 'pointer' }}>
+                      <Trash2 size={11} color={C.danger} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -468,20 +484,112 @@ export default function KRIPage() {
       title="הוספת מדד סיכון חדש"
       onSubmit={() => {}}
       submitLabel="הוסף מדד"
+      hideFooter
     >
       <KRIForm
         mode="create"
         onSubmit={async (data) => {
           try {
-            await updateKRI('new', data);
+            await createKRI(data);
+            setShowAddKRI(false);
+            showToast('המדד נוסף בהצלחה');
+            // reload
+            const rows = await getKRIs();
+            if (rows.length > 0) {
+              setKriData(rows.map((r) => ({
+                id: r.id, name: r.name, value: Number(r.currentValue) || 0,
+                unit: '', threshold: { green: 5, yellow: 7, red: 10 },
+                trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0], cat: 'כללי',
+              })));
+            }
           } catch {
-            /* silent */
+            showToast('שגיאה ביצירת המדד', 'error');
           }
-          setShowAddKRI(false);
         }}
         onCancel={() => setShowAddKRI(false)}
       />
     </FormModal>
+
+    {/* Edit KRI Modal */}
+    <FormModal
+      open={!!editKRI}
+      onClose={() => setEditKRI(null)}
+      title="עריכת מדד סיכון"
+      onSubmit={() => {}}
+      hideFooter
+    >
+      {editKRI && (
+        <KRIForm
+          mode="edit"
+          initialData={{
+            name: editKRI.name,
+            currentValue: String(editKRI.value),
+            threshold: `green:${editKRI.threshold.green},yellow:${editKRI.threshold.yellow},red:${editKRI.threshold.red}`,
+            trend: 'stable',
+            breached: false,
+          }}
+          onSubmit={async (data) => {
+            try {
+              await updateKRI(editKRI.id, data);
+              setEditKRI(null);
+              showToast('המדד עודכן בהצלחה');
+              const rows = await getKRIs();
+              if (rows.length > 0) {
+                setKriData(rows.map((r) => ({
+                  id: r.id, name: r.name, value: Number(r.currentValue) || 0,
+                  unit: '', threshold: { green: 5, yellow: 7, red: 10 },
+                  trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0], cat: 'כללי',
+                })));
+              }
+            } catch {
+              showToast('שגיאה בעדכון המדד', 'error');
+            }
+          }}
+          onCancel={() => setEditKRI(null)}
+        />
+      )}
+    </FormModal>
+
+    {/* Delete Confirmation */}
+    <FormModal
+      open={!!deleteTarget}
+      onClose={() => setDeleteTarget(null)}
+      title="מחיקת מדד"
+      onSubmit={async () => {
+        if (!deleteTarget) return;
+        const prev = [...kriData];
+        setKriData(k => k.filter(x => x.id !== deleteTarget.id));
+        setDeleteTarget(null);
+        try {
+          await deleteKRI(deleteTarget.id);
+          showToast('המדד נמחק בהצלחה');
+        } catch {
+          setKriData(prev);
+          showToast('שגיאה במחיקת המדד', 'error');
+        }
+      }}
+      submitLabel="מחק"
+    >
+      <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+        האם למחוק את המדד <strong>&quot;{deleteTarget?.name}&quot;</strong>?
+      </p>
+      <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+        פעולה זו אינה הפיכה.
+      </p>
+    </FormModal>
+
+    {/* Toast */}
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+        background: toast.type === 'success' ? C.success : C.danger,
+        color: 'white', padding: '10px 24px', borderRadius: 10,
+        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+        zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      }}>
+        {toast.message}
+      </div>
+    )}
     </>
   );
 }

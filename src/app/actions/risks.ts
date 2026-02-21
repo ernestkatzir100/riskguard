@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { risks, controls, riskControls, lossEvents } from '@/db/schema';
 import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
-import { createRiskSchema, updateRiskSchema } from '@/shared/lib/validators';
+import { createRiskSchema, updateRiskSchema, createLossEventSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function getRisks(filters?: { category?: string; status?: string }) {
@@ -60,6 +60,29 @@ export async function deleteRisk(id: string) {
 export async function getLossEvents() {
   const user = await getCurrentUserOrDemo();
   return db.select().from(lossEvents).where(eq(lossEvents.tenantId, user.tenant_id)).orderBy(desc(lossEvents.eventDate));
+}
+
+export async function createLossEvent(data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createLossEventSchema.parse(data);
+  const [created] = await db.insert(lossEvents).values({ tenantId: user.tenant_id, ...parsed }).returning();
+  await logAction({ action: 'loss_event.created', entity_type: 'loss_event', entity_id: created.id, user_id: user.id, tenant_id: user.tenant_id, details: { title: parsed.title } });
+  return created;
+}
+
+export async function updateLossEvent(id: string, data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createLossEventSchema.partial().parse(data);
+  const [updated] = await db.update(lossEvents).set(parsed).where(and(eq(lossEvents.id, id), eq(lossEvents.tenantId, user.tenant_id))).returning();
+  if (!updated) throw new Error('Loss event not found');
+  await logAction({ action: 'loss_event.updated', entity_type: 'loss_event', entity_id: id, user_id: user.id, tenant_id: user.tenant_id, details: parsed as Record<string, unknown> });
+  return updated;
+}
+
+export async function deleteLossEvent(id: string) {
+  const user = await getCurrentUserOrDemo();
+  await db.delete(lossEvents).where(and(eq(lossEvents.id, id), eq(lossEvents.tenantId, user.tenant_id)));
+  await logAction({ action: 'loss_event.deleted', entity_type: 'loss_event', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
 }
 
 export async function getRiskHeatMap() {

@@ -52,6 +52,37 @@ export async function updateTaskStatus(id: string, status: 'pending' | 'in_progr
   return updated;
 }
 
+export async function updateTask(id: string, data: unknown) {
+  const user = await getCurrentUserOrDemo();
+  const parsed = createTaskSchema.partial().parse(data);
+  const [updated] = await db.update(tasks)
+    .set(parsed)
+    .where(and(eq(tasks.id, id), eq(tasks.tenantId, user.tenant_id)))
+    .returning();
+  if (!updated) throw new Error('Task not found');
+  await logAction({
+    action: 'task.updated',
+    entity_type: 'task',
+    entity_id: id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+    details: parsed as Record<string, unknown>,
+  });
+  return updated;
+}
+
+export async function deleteTask(id: string) {
+  const user = await getCurrentUserOrDemo();
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.tenantId, user.tenant_id)));
+  await logAction({
+    action: 'task.deleted',
+    entity_type: 'task',
+    entity_id: id,
+    user_id: user.id,
+    tenant_id: user.tenant_id,
+  });
+}
+
 export async function completeTask(id: string) {
   const user = await getCurrentUserOrDemo();
   const [updated] = await db.update(tasks)

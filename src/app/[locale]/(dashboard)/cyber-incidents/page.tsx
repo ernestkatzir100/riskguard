@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react';
 import {
   Zap, BookOpen, X, AlertTriangle, CheckCircle,
-  Shield, FileText, User, Activity,
+  Shield, FileText, User, Activity, Pencil, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
 import { ScoreRing } from '@/shared/components/score-ring';
-import { getCyberIncidents, createCyberIncident } from '@/app/actions/cyber';
+import { getCyberIncidents, createCyberIncident, updateCyberIncident, deleteCyberIncident } from '@/app/actions/cyber';
 import { FormModal } from '@/shared/components/form-modal';
 import { IncidentForm } from '@/shared/components/forms/incident-form';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══ Incident Data ═══ */
 type TimelineStep = { label: string; date: string; done: boolean; note?: string };
@@ -93,8 +95,17 @@ const PROCEDURE_STEPS = [
 
 export default function CyberIncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>(INCIDENTS);
+  const [loading, setLoading] = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [showAddIncident, setShowAddIncident] = useState(false);
+  const [editIncident, setEditIncident] = useState<Incident | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Incident | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   async function loadData() {
     try {
@@ -115,7 +126,7 @@ export default function CyberIncidentsPage() {
         }));
         setIncidents(mapped);
       }
-    } catch { /* fallback to demo */ }
+    } catch { /* fallback to demo */ } finally { setLoading(false); }
   }
   useEffect(() => { loadData(); }, []);
 
@@ -124,6 +135,9 @@ export default function CyberIncidentsPage() {
   const totalIncidents = incidents.length;
   const openIncidents = incidents.filter(inc => inc.status === 'פתוח').length;
   const avgResponseHours = 2.5;
+
+  if (loading) return <PageSkeleton />;
+  if (incidents.length === 0) return <EmptyState {...EMPTY_STATES['cyber-incidents']} />;
 
   return (
     <>
@@ -178,9 +192,17 @@ export default function CyberIncidentsPage() {
             {/* Panel Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>#{selected.id}</span>
-              <button onClick={() => setSelectedIncident(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={14} color={C.textSec} />
-              </button>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <button onClick={() => setEditIncident(selected)} title="ערוך" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                  <Pencil size={12} color={C.textSec} />
+                </button>
+                <button onClick={() => setDeleteTarget(selected)} title="מחק" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                  <Trash2 size={12} color={C.danger} />
+                </button>
+                <button onClick={() => setSelectedIncident(null)} style={{ background: C.borderLight, border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={14} color={C.textSec} />
+                </button>
+              </div>
             </div>
 
             <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 4px' }}>{selected.type}</h3>
@@ -448,17 +470,103 @@ export default function CyberIncidentsPage() {
       onClose={() => setShowAddIncident(false)}
       title="דווח אירוע סייבר חדש"
       onSubmit={() => {}}
+      hideFooter
     >
       <IncidentForm
         mode="create"
         onSubmit={async (data) => {
-          await createCyberIncident(data);
-          setShowAddIncident(false);
-          await loadData();
+          try {
+            await createCyberIncident(data);
+            setShowAddIncident(false);
+            await loadData();
+            showToast('האירוע דווח בהצלחה');
+          } catch {
+            showToast('שגיאה בדיווח האירוע', 'error');
+          }
         }}
         onCancel={() => setShowAddIncident(false)}
       />
     </FormModal>
+
+    {/* Edit Incident Modal */}
+    <FormModal
+      open={!!editIncident}
+      onClose={() => setEditIncident(null)}
+      title="עריכת אירוע סייבר"
+      onSubmit={() => {}}
+      hideFooter
+    >
+      {editIncident && (
+        <IncidentForm
+          mode="edit"
+          initialData={{
+            title: editIncident.type,
+            description: editIncident.description,
+            severity: editIncident.severity === 'גבוה' ? 'high' : editIncident.severity === 'בינוני' ? 'medium' : 'low',
+            status: editIncident.status === 'סגור' ? 'resolved' : 'investigating',
+            incidentType: editIncident.type,
+            detectedAt: '',
+            dataExposed: false,
+            rootCause: editIncident.resolution ?? '',
+            remediation: '',
+          }}
+          onSubmit={async (data) => {
+            try {
+              await updateCyberIncident(editIncident.id, data);
+              setEditIncident(null);
+              setSelectedIncident(null);
+              await loadData();
+              showToast('האירוע עודכן בהצלחה');
+            } catch {
+              showToast('שגיאה בעדכון האירוע', 'error');
+            }
+          }}
+          onCancel={() => setEditIncident(null)}
+        />
+      )}
+    </FormModal>
+
+    {/* Delete Confirmation */}
+    <FormModal
+      open={!!deleteTarget}
+      onClose={() => setDeleteTarget(null)}
+      title="מחיקת אירוע"
+      onSubmit={async () => {
+        if (!deleteTarget) return;
+        const prev = [...incidents];
+        setIncidents(i => i.filter(x => x.id !== deleteTarget.id));
+        setDeleteTarget(null);
+        setSelectedIncident(null);
+        try {
+          await deleteCyberIncident(deleteTarget.id);
+          showToast('האירוע נמחק בהצלחה');
+        } catch {
+          setIncidents(prev);
+          showToast('שגיאה במחיקת האירוע', 'error');
+        }
+      }}
+      submitLabel="מחק"
+    >
+      <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+        האם למחוק את האירוע <strong>&quot;{deleteTarget?.type}&quot;</strong>?
+      </p>
+      <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+        פעולה זו אינה הפיכה.
+      </p>
+    </FormModal>
+
+    {/* Toast */}
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+        background: toast.type === 'success' ? C.success : C.danger,
+        color: 'white', padding: '10px 24px', borderRadius: 10,
+        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+        zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      }}>
+        {toast.message}
+      </div>
+    )}
     </>
   );
 }

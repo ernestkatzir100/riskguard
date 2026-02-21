@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import {
   Briefcase, BookOpen, Calendar, Clock, CheckCircle2,
-  Mail, Users, FileText, AlertCircle, ChevronLeft,
+  Mail, Users, FileText, AlertCircle, ChevronLeft, Pencil, Trash2,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getBoardMeetings, createBoardMeeting } from '@/app/actions/board';
+import { getBoardMeetings, createBoardMeeting, updateBoardMeeting, deleteBoardMeeting } from '@/app/actions/board';
 import { FormModal } from '@/shared/components/form-modal';
 import { MeetingForm } from '@/shared/components/forms/meeting-form';
+import { PageSkeleton } from '@/shared/components/skeleton-loader';
+import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
 
 /* ═══ Board Members ═══ */
 const MEMBERS = [
@@ -82,26 +84,41 @@ const APPROVAL_STATUS_STYLE = {
 
 export default function BoardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>(MEETINGS);
+  const [loading, setLoading] = useState(true);
   const [showAddMeeting, setShowAddMeeting] = useState(false);
+  const [editMeeting, setEditMeeting] = useState<(Meeting & { id?: string }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Meeting & { id?: string }) | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   async function loadData() {
     try {
       const result = await getBoardMeetings();
       if (result && Array.isArray(result) && result.length > 0) {
         const mapped = result.map((m: Record<string, unknown>) => ({
-          date: String(m.date ?? ''),
-          dateShort: String(m.dateShort ?? ''),
-          type: String(m.type ?? ''),
-          status: (m.status as 'בוצע' | 'מתוכנן') ?? 'מתוכנן',
-          minutes: m.minutes ? String(m.minutes) : null,
-          decisions: (m.decisions as { total: number; done: number; active: number } | null) ?? null,
+          id: String(m.id ?? ''),
+          date: m.date ? new Date(m.date as string).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : String(m.date ?? ''),
+          dateShort: m.date ? new Date(m.date as string).toLocaleDateString('he-IL') : '',
+          dateRaw: m.date ? new Date(m.date as string).toISOString().split('T')[0] : '',
+          type: String(m.meetingType ?? m.type ?? ''),
+          status: (m.status === 'completed' ? 'בוצע' : 'מתוכנן') as 'בוצע' | 'מתוכנן',
+          minutes: null,
+          decisions: null,
           agenda: Array.isArray(m.agenda) ? m.agenda as string[] : null,
+          quarter: String(m.quarter ?? ''),
         }));
         setMeetings(mapped);
       }
-    } catch { /* fallback to demo */ }
+    } catch { /* fallback to demo */ } finally { setLoading(false); }
   }
   useEffect(() => { loadData(); }, []);
+
+  if (loading) return <PageSkeleton />;
+  if (meetings.length === 0) return <EmptyState {...EMPTY_STATES['board']} />;
 
   return (
     <>
@@ -223,9 +240,17 @@ export default function BoardPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 2 }}>{mtg.type}</div>
                     <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>{mtg.date}</div>
                   </div>
-                  <span style={{ background: sts.bg, color: sts.c, fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 6, fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>
-                    {mtg.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button onClick={() => setEditMeeting(mtg)} title="ערוך" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 5px', cursor: 'pointer' }}>
+                      <Pencil size={11} color={C.textSec} />
+                    </button>
+                    <button onClick={() => setDeleteTarget(mtg)} title="מחק" style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 5px', cursor: 'pointer' }}>
+                      <Trash2 size={11} color={C.danger} />
+                    </button>
+                    <span style={{ background: sts.bg, color: sts.c, fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 6, fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>
+                      {mtg.status}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Last meeting details */}
@@ -327,17 +352,101 @@ export default function BoardPage() {
       onClose={() => setShowAddMeeting(false)}
       title="ישיבה חדשה"
       onSubmit={() => {}}
+      hideFooter
     >
       <MeetingForm
         mode="create"
         onSubmit={async (data) => {
-          await createBoardMeeting(data);
-          setShowAddMeeting(false);
-          await loadData();
+          try {
+            await createBoardMeeting({ ...data, agenda: data.agenda ? data.agenda.split('\n').filter(Boolean) : [], attendees: data.attendees ? data.attendees.split('\n').filter(Boolean) : [] });
+            setShowAddMeeting(false);
+            await loadData();
+            showToast('הישיבה נוספה בהצלחה');
+          } catch {
+            showToast('שגיאה ביצירת הישיבה', 'error');
+          }
         }}
         onCancel={() => setShowAddMeeting(false)}
       />
     </FormModal>
+
+    {/* Edit Meeting Modal */}
+    <FormModal
+      open={!!editMeeting}
+      onClose={() => setEditMeeting(null)}
+      title="עריכת ישיבה"
+      onSubmit={() => {}}
+      hideFooter
+    >
+      {editMeeting && (
+        <MeetingForm
+          mode="edit"
+          initialData={{
+            meetingType: editMeeting.type,
+            date: (editMeeting as Record<string, unknown>).dateRaw as string ?? '',
+            quarter: (editMeeting as Record<string, unknown>).quarter as string ?? '',
+            agenda: editMeeting.agenda?.join('\n') ?? '',
+            attendees: '',
+          }}
+          onSubmit={async (data) => {
+            try {
+              const id = (editMeeting as Record<string, unknown>).id as string;
+              if (id) {
+                await updateBoardMeeting(id, { ...data, agenda: data.agenda ? data.agenda.split('\n').filter(Boolean) : [], attendees: data.attendees ? data.attendees.split('\n').filter(Boolean) : [] });
+              }
+              setEditMeeting(null);
+              await loadData();
+              showToast('הישיבה עודכנה בהצלחה');
+            } catch {
+              showToast('שגיאה בעדכון הישיבה', 'error');
+            }
+          }}
+          onCancel={() => setEditMeeting(null)}
+        />
+      )}
+    </FormModal>
+
+    {/* Delete Confirmation */}
+    <FormModal
+      open={!!deleteTarget}
+      onClose={() => setDeleteTarget(null)}
+      title="מחיקת ישיבה"
+      onSubmit={async () => {
+        if (!deleteTarget) return;
+        const prev = [...meetings];
+        setMeetings(m => m.filter(x => x !== deleteTarget));
+        setDeleteTarget(null);
+        try {
+          const id = (deleteTarget as Record<string, unknown>).id as string;
+          if (id) await deleteBoardMeeting(id);
+          showToast('הישיבה נמחקה בהצלחה');
+        } catch {
+          setMeetings(prev);
+          showToast('שגיאה במחיקת הישיבה', 'error');
+        }
+      }}
+      submitLabel="מחק"
+    >
+      <p style={{ fontSize: 14, color: C.text, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+        האם למחוק את הישיבה <strong>&quot;{deleteTarget?.type}&quot;</strong>?
+      </p>
+      <p style={{ fontSize: 12, color: C.danger, fontFamily: 'var(--font-assistant)', marginTop: 8 }}>
+        פעולה זו אינה הפיכה.
+      </p>
+    </FormModal>
+
+    {/* Toast */}
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+        background: toast.type === 'success' ? C.success : C.danger,
+        color: 'white', padding: '10px 24px', borderRadius: 10,
+        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-rubik)',
+        zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      }}>
+        {toast.message}
+      </div>
+    )}
     </>
   );
 }

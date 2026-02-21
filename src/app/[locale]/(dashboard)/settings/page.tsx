@@ -14,10 +14,32 @@ import {
   X,
   DollarSign,
   Plus,
+  History,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
 import { getTenant, updateTenant, getUsers, inviteUser } from '@/app/actions/settings';
+import { getRecentActivity } from '@/app/actions/dashboard';
+
+/* ═══ Audit Log — Hebrew labels ═══ */
+const ACTION_LABELS: Record<string, string> = {
+  'risk.created': 'סיכון נוצר', 'risk.updated': 'סיכון עודכן', 'risk.deleted': 'סיכון נמחק',
+  'task.created': 'משימה נוצרה', 'task.updated': 'משימה עודכנה', 'task.deleted': 'משימה נמחקה',
+  'vendor.created': 'ספק נוצר', 'vendor.updated': 'ספק עודכן', 'vendor.deleted': 'ספק נמחק',
+  'document.created': 'מסמך נוצר', 'document.updated': 'מסמך עודכן', 'document.deleted': 'מסמך נמחק',
+  'incident.created': 'אירוע סייבר נוצר', 'incident.updated': 'אירוע סייבר עודכן', 'incident.deleted': 'אירוע סייבר נמחק',
+  'kri.created': 'מדד סיכון נוצר', 'kri.updated': 'מדד סיכון עודכן', 'kri.deleted': 'מדד סיכון נמחק',
+  'meeting.created': 'ישיבה נוצרה', 'meeting.updated': 'ישיבה עודכנה', 'meeting.deleted': 'ישיבה נמחקה',
+  'bcp_test.created': 'תרגיל BCP נוצר', 'bcp_test.deleted': 'תרגיל BCP נמחק',
+  'loss_event.created': 'אירוע הפסד נוצר', 'loss_event.updated': 'אירוע הפסד עודכן', 'loss_event.deleted': 'אירוע הפסד נמחק',
+  'tenant.updated': 'פרטי ארגון עודכנו', 'user.invited': 'משתמש הוזמן', 'report.generated': 'דוח נוצר',
+};
+const ENTITY_LABELS: Record<string, string> = {
+  risk: 'סיכון', task: 'משימה', vendor: 'ספק', document: 'מסמך',
+  incident: 'אירוע סייבר', kri: 'מדד סיכון', meeting: 'ישיבה',
+  bcp_test: 'תרגיל BCP', loss_event: 'אירוע הפסד',
+  tenant: 'ארגון', user: 'משתמש', report: 'דוח',
+};
 
 /* ═══ Demo Company ═══ */
 const COMPANY = { name: 'קרדיט-פיננס בע״מ' };
@@ -492,6 +514,11 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('');
   const [showInvite, setShowInvite] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<Array<{
+    id: number; action: string; entityType: string; entityId: string | null;
+    details: Record<string, unknown> | null; timestamp: Date | string; userId: string | null;
+  }>>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -547,10 +574,20 @@ export default function SettingsPage() {
     }
   }
 
+  async function loadAuditLogs() {
+    setAuditLoading(true);
+    try {
+      const logs = await getRecentActivity(200);
+      setAuditLogs(logs as typeof auditLogs);
+    } catch { /* silent */ }
+    setAuditLoading(false);
+  }
+
   const TABS = [
     { id: 'org', l: 'ארגון וצוות', Icon: Building2 },
     { id: 'billing', l: 'חבילות ומחירים', Icon: Receipt },
     { id: 'ntl', l: 'NTL Management', Icon: Sparkles },
+    { id: 'audit', l: 'יומן פעולות', Icon: History },
   ];
 
   return (
@@ -726,6 +763,110 @@ export default function SettingsPage() {
 
       {/* ═══ Tab: Billing ═══ */}
       {tab === 'billing' && <BillingScreen />}
+
+      {/* ═══ Tab: Audit Log ═══ */}
+      {tab === 'audit' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <History size={20} color={C.accent} /> יומן פעולות
+              </h2>
+              <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+                תיעוד כל הפעולות שבוצעו במערכת
+              </p>
+            </div>
+            <button
+              onClick={loadAuditLogs}
+              disabled={auditLoading}
+              style={{
+                background: auditLoading ? C.textMuted : C.accentGrad, color: 'white',
+                border: 'none', borderRadius: 8, padding: '7px 20px', fontSize: 12,
+                fontWeight: 600, cursor: auditLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-rubik)',
+              }}
+            >
+              {auditLoading ? 'טוען...' : 'רענן'}
+            </button>
+          </div>
+
+          {auditLogs.length === 0 && !auditLoading && (
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+              padding: '48px 32px', textAlign: 'center',
+            }}>
+              <History size={32} color={C.textMuted} style={{ marginBottom: 12 }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 6 }}>
+                אין פעולות ביומן
+              </div>
+              <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: '0 0 16px' }}>
+                לחץ &quot;רענן&quot; כדי לטעון את יומן הפעולות מהשרת
+              </p>
+              <button
+                onClick={loadAuditLogs}
+                style={{
+                  background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8,
+                  padding: '8px 24px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'var(--font-rubik)',
+                }}
+              >
+                טען יומן
+              </button>
+            </div>
+          )}
+
+          {auditLogs.length > 0 && (
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>
+                <thead>
+                  <tr style={{ background: C.borderLight, borderBottom: `2px solid ${C.border}` }}>
+                    {['תאריך', 'פעולה', 'סוג ישות', 'פרטים'].map((h) => (
+                      <th key={h} style={{
+                        textAlign: 'right', padding: '9px 12px', fontWeight: 600,
+                        fontSize: 10, color: C.textSec, fontFamily: 'var(--font-rubik)',
+                      }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map((log, i) => {
+                    const ts = new Date(log.timestamp);
+                    const timeStr = `${ts.toLocaleDateString('he-IL')} ${ts.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+                    const actionLabel = ACTION_LABELS[log.action] || log.action;
+                    const entityLabel = ENTITY_LABELS[log.entityType] || log.entityType;
+                    const detailStr = log.details ? Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ') : '—';
+
+                    return (
+                      <tr key={log.id} style={{ borderBottom: `1px solid ${C.borderLight}`, background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                        <td style={{ padding: '10px 12px', fontFamily: 'var(--font-rubik)', fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>
+                          {timeStr}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: C.text }}>
+                          {actionLabel}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{
+                            background: C.accentLight, color: C.accent, fontSize: 10,
+                            fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+                            fontFamily: 'var(--font-rubik)',
+                          }}>
+                            {entityLabel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontSize: 11, color: C.textMuted, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {detailStr}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══ Tab: NTL Management ═══ */}
       {tab === 'ntl' && (
