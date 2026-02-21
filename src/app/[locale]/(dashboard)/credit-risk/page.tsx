@@ -12,9 +12,9 @@ import {
 import { C } from '@/shared/lib/design-tokens';
 
 const SPEC_KPIS = [
-  { label: 'שיעור NPL', value: '2.3%', color: '#2E8B57' },
-  { label: 'יחס הון (CAR)', value: '14.2%', color: '#2E8B57' },
-  { label: 'תיק אשראי', value: '₪85M', color: '#4A8EC2' },
+  { label: 'שיעור NPL', value: '2.3%', color: '#16A34A' },
+  { label: 'יחס הון (CAR)', value: '14.2%', color: '#16A34A' },
+  { label: 'תיק אשראי', value: '₪85M', color: '#1D6FAB' },
 ];
 
 /* ═══════════════════════════════════════════════
@@ -55,7 +55,7 @@ const totalCount = CREDIT_PORTFOLIO.reduce((s, p) => s + p.count, 0);
 const eclRatio = (totalECL / totalExposure) * 100;
 const weightedPD = CREDIT_PORTFOLIO.reduce((s, p) => s + p.pd * p.exposure, 0) / totalExposure;
 
-const PIE_COLORS = ['#4A8EC2', '#5BB8C9', '#2E8B57', '#C8922A', '#C0392B', '#7B61FF'];
+const PIE_COLORS = ['#1D6FAB', '#0E9AAA', '#16A34A', '#D97706', '#DC2626', '#7B61FF'];
 const pieData = CREDIT_PORTFOLIO.map((p) => ({
   name: p.segment,
   value: p.exposure,
@@ -105,7 +105,7 @@ export default function CreditRiskPage() {
           }}>
             <CreditCard size={20} color={C.accent} /> סיכון אשראי
             <span style={{
-              background: 'rgba(91,184,201,0.2)', color: '#5BB8C9',
+              background: 'rgba(91,184,201,0.2)', color: '#0E9AAA',
               fontSize: 9, fontWeight: 700, padding: '3px 10px',
               borderRadius: 4, fontFamily: 'var(--font-rubik)',
               marginRight: 4,
@@ -533,7 +533,7 @@ export default function CreditRiskPage() {
               <span style={{ fontWeight: 700, fontFamily: 'var(--font-rubik)' }}>
                 ({t.reg}, {t.section}, {t.req})
               </span>
-              <span style={{ marginRight: 6, color: '#4A5568' }}>{t.desc}</span>
+              <span style={{ marginRight: 6, color: '#475569' }}>{t.desc}</span>
             </div>
           ))}
         </div>

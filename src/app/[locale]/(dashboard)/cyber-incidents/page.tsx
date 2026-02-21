@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateCyberIncidentsReport } from '@/app/actions/report-generate';
 import { ScoreRing } from '@/shared/components/score-ring';
 import { getCyberIncidents, createCyberIncident, updateCyberIncident, deleteCyberIncident } from '@/app/actions/cyber';
 import { FormModal } from '@/shared/components/form-modal';
@@ -153,6 +155,7 @@ export default function CyberIncidentsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ReportDownloadButtons generateAction={generateCyberIncidentsReport} filenameBase="cyber-incidents" />
           <button onClick={() => setShowAddIncident(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             + דווח אירוע
           </button>

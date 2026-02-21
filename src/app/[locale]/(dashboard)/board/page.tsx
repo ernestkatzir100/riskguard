@@ -12,6 +12,8 @@ import { FormModal } from '@/shared/components/form-modal';
 import { MeetingForm } from '@/shared/components/forms/meeting-form';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
 import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateBoardReport } from '@/app/actions/report-generate';
 
 /* ═══ Board Members ═══ */
 const MEMBERS = [
@@ -137,6 +139,7 @@ export default function BoardPage() {
           <button onClick={() => setShowAddMeeting(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             + ישיבה חדשה
           </button>
+          <ReportDownloadButtons generateAction={generateBoardReport} filenameBase="board" />
           <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <BookOpen size={12} /> חוזר 2024-10-2 §2(א)
           </div>

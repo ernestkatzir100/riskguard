@@ -18,8 +18,11 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getTenant, updateTenant, getUsers, inviteUser } from '@/app/actions/settings';
+import { getTenant, updateTenant, getUsers, inviteUser, updateUserRole, removeUser, updateBranding, getBranding } from '@/app/actions/settings';
 import { getRecentActivity } from '@/app/actions/dashboard';
+import { ROLE_LABELS, ROLE_COLORS } from '@/shared/lib/permissions';
+import type { CurrentUser } from '@/shared/lib/auth';
+import { Upload, Image as ImageIcon } from 'lucide-react';
 
 /* ═══ Audit Log — Hebrew labels ═══ */
 const ACTION_LABELS: Record<string, string> = {
@@ -32,7 +35,7 @@ const ACTION_LABELS: Record<string, string> = {
   'meeting.created': 'ישיבה נוצרה', 'meeting.updated': 'ישיבה עודכנה', 'meeting.deleted': 'ישיבה נמחקה',
   'bcp_test.created': 'תרגיל BCP נוצר', 'bcp_test.deleted': 'תרגיל BCP נמחק',
   'loss_event.created': 'אירוע הפסד נוצר', 'loss_event.updated': 'אירוע הפסד עודכן', 'loss_event.deleted': 'אירוע הפסד נמחק',
-  'tenant.updated': 'פרטי ארגון עודכנו', 'user.invited': 'משתמש הוזמן', 'report.generated': 'דוח נוצר',
+  'tenant.updated': 'פרטי ארגון עודכנו', 'user.invited': 'משתמש הוזמן', 'user.role_changed': 'תפקיד שונה', 'user.removed': 'משתמש הוסר', 'report.generated': 'דוח נוצר',
 };
 const ENTITY_LABELS: Record<string, string> = {
   risk: 'סיכון', task: 'משימה', vendor: 'ספק', document: 'מסמך',
@@ -103,7 +106,7 @@ const PLANS = [
     name: 'Enterprise',
     price: '8,000+',
     desc: 'מוסדות מורכבים',
-    color: '#7C6FD0',
+    color: '#7C3AED',
     features: [
       'הכל ב-Pro +',
       'API Access מלא',
@@ -137,10 +140,11 @@ const INVOICES = [
 ];
 
 /* ═══ Team Members ═══ */
-const TEAM = [
-  { name: 'יוסי לוי', role: 'מנהל סיכונים', email: 'yossi@credit-finance.co.il' },
-  { name: 'דנה כהן', role: 'אחראית סייבר', email: 'dana@credit-finance.co.il' },
-  { name: 'אבי שרון', role: 'מנכ״ל', email: 'avi@credit-finance.co.il' },
+type TeamMember = { id: string; name: string; role: CurrentUser['role']; email: string };
+const TEAM: TeamMember[] = [
+  { id: 'demo-1', name: 'יוסי לוי', role: 'risk_manager', email: 'yossi@credit-finance.co.il' },
+  { id: 'demo-2', name: 'דנה כהן', role: 'viewer', email: 'dana@credit-finance.co.il' },
+  { id: 'demo-3', name: 'אבי שרון', role: 'admin', email: 'avi@credit-finance.co.il' },
 ];
 
 /* ═══ Org Details ═══ */
@@ -509,11 +513,14 @@ function BillingScreen() {
 export default function SettingsPage() {
   const [tab, setTab] = useState('org');
   const [orgFields, setOrgFields] = useState(ORG_FIELDS);
-  const [teamMembers, setTeamMembers] = useState(TEAM);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(TEAM);
   const [saving, setSaving] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('');
   const [showInvite, setShowInvite] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [brandColor, setBrandColor] = useState<string>('');
+  const [brandingSaving, setBrandingSaving] = useState(false);
   const [auditLogs, setAuditLogs] = useState<Array<{
     id: number; action: string; entityType: string; entityId: string | null;
     details: Record<string, unknown> | null; timestamp: Date | string; userId: string | null;
@@ -534,14 +541,18 @@ export default function SettingsPage() {
             { l: 'מספר עובדים', v: String(tenant.employeeCount || '35') },
           ]);
         }
-        const users = await getUsers();
-        if (users.length > 0) {
-          setTeamMembers(users.map((u) => ({
+        const dbUsers = await getUsers();
+        if (dbUsers.length > 0) {
+          setTeamMembers(dbUsers.map((u) => ({
+            id: u.id,
             name: u.fullName || u.email?.split('@')[0] || '',
-            role: u.role || '',
+            role: (u.role || 'viewer') as CurrentUser['role'],
             email: u.email || '',
           })));
         }
+        const brand = await getBranding();
+        if (brand.logoUrl) setLogoPreview(brand.logoUrl);
+        if (brand.brandColor) setBrandColor(brand.brandColor);
       } catch {
         /* silent fallback to demo data */
       }
@@ -638,6 +649,108 @@ export default function SettingsPage() {
       {/* ═══ Tab: Org & Team ═══ */}
       {tab === 'org' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          {/* Branding */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, gridColumn: '1 / -1' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ImageIcon size={14} color={C.accent} /> מיתוג ארגוני
+            </h3>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+              {/* Logo upload */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: 12, border: `2px dashed ${C.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: C.borderLight, overflow: 'hidden', marginBottom: 8,
+                }}>
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="לוגו" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <Upload size={24} color={C.textMuted} />
+                  )}
+                </div>
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '5px 12px', background: C.accentLight, color: C.accent,
+                  borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'var(--font-rubik)',
+                }}>
+                  <Upload size={10} /> העלה לוגו
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 500_000) { alert('הקובץ גדול מ-500KB'); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string;
+                      setLogoPreview(dataUrl);
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+                {logoPreview && (
+                  <button onClick={() => setLogoPreview(null)} style={{
+                    display: 'block', margin: '4px auto 0', background: 'none', border: 'none',
+                    fontSize: 10, color: C.danger, cursor: 'pointer', fontFamily: 'var(--font-rubik)',
+                  }}>
+                    הסר לוגו
+                  </button>
+                )}
+              </div>
+
+              {/* Brand color */}
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, fontFamily: 'var(--font-rubik)', display: 'block', marginBottom: 6 }}>
+                  צבע מותג (אופציונלי)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="color"
+                    value={brandColor || '#1D6FAB'}
+                    onChange={(e) => setBrandColor(e.target.value)}
+                    style={{ width: 36, height: 36, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0 }}
+                  />
+                  <input
+                    type="text"
+                    value={brandColor}
+                    onChange={(e) => setBrandColor(e.target.value)}
+                    placeholder="#1D6FAB"
+                    style={{
+                      padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6,
+                      fontSize: 12, fontFamily: 'var(--font-rubik)', outline: 'none', width: 120,
+                    }}
+                  />
+                  {brandColor && (
+                    <button onClick={() => setBrandColor('')} style={{
+                      background: 'none', border: 'none', fontSize: 10, color: C.textMuted,
+                      cursor: 'pointer', fontFamily: 'var(--font-rubik)',
+                    }}>
+                      איפוס
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={async () => {
+                    setBrandingSaving(true);
+                    try {
+                      await updateBranding({ logoUrl: logoPreview, brandColor: brandColor || null });
+                      // Refresh branding cache
+                      try { localStorage.setItem('rg-branding', JSON.stringify({ companyName: orgFields.find(f => f.l === 'שם חברה')?.v || '', logoUrl: logoPreview, brandColor: brandColor || null })); } catch { /* ignore */ }
+                    } catch { /* silent */ }
+                    setBrandingSaving(false);
+                  }}
+                  disabled={brandingSaving}
+                  style={{
+                    background: brandingSaving ? C.textMuted : C.accentGrad, color: 'white',
+                    border: 'none', borderRadius: 8, padding: '7px 20px', fontSize: 12,
+                    fontWeight: 600, cursor: brandingSaving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-rubik)',
+                  }}
+                >
+                  {brandingSaving ? 'שומר...' : 'שמור מיתוג'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Org Details */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
             <h3
@@ -711,52 +824,67 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, fontFamily: 'var(--font-rubik)', display: 'block', marginBottom: 4 }}>תפקיד</label>
-                  <input value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} placeholder="מנהל סיכונים" style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-assistant)', outline: 'none', boxSizing: 'border-box' }} />
+                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-assistant)', outline: 'none', boxSizing: 'border-box', background: 'white' }}>
+                    <option value="">בחר תפקיד</option>
+                    {(Object.entries(ROLE_LABELS) as [CurrentUser['role'], string][]).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
                 </div>
                 <button onClick={handleInviteUser} style={{ background: C.accent, color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', whiteSpace: 'nowrap' }}>שלח הזמנה</button>
               </div>
             )}
-            {teamMembers.map((u, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 0',
-                  borderBottom: `1px solid ${C.borderLight}`,
-                }}
-              >
+            {teamMembers.map((u) => {
+              const rc = ROLE_COLORS[u.role] || ROLE_COLORS.viewer;
+              return (
                 <div
+                  key={u.id}
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${C.accent}, ${C.accent}CC)`,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-rubik)',
+                    gap: 10,
+                    padding: '10px 0',
+                    borderBottom: `1px solid ${C.borderLight}`,
                   }}
                 >
-                  {u.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')}
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>
-                    {u.name}
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${rc.color}, ${rc.color}CC)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-rubik)' }}>
+                    {u.name.split(' ').map((n) => n[0]).join('')}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
-                    {u.role} · {u.email}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>
+                      {u.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
+                      {u.email}
+                    </div>
                   </div>
+                  <select
+                    value={u.role}
+                    onChange={async (e) => {
+                      const newRole = e.target.value as CurrentUser['role'];
+                      setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: newRole } : m));
+                      try { await updateUserRole(u.id, newRole); } catch { setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: u.role } : m)); }
+                    }}
+                    style={{ padding: '4px 8px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-rubik)', background: rc.bg, color: rc.color, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                  >
+                    {(Object.entries(ROLE_LABELS) as [CurrentUser['role'], string][]).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`להסיר את ${u.name}?`)) return;
+                      setTeamMembers(prev => prev.filter(m => m.id !== u.id));
+                      try { await removeUser(u.id); } catch { setTeamMembers(prev => [...prev, u]); }
+                    }}
+                    title="הסר משתמש"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                  >
+                    <X size={14} color={C.textMuted} />
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

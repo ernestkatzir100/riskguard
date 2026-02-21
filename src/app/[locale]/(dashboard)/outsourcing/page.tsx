@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateVendorReport } from '@/app/actions/report-generate';
 import { getVendors, createVendor, updateVendor, deleteVendor } from '@/app/actions/vendors';
 import { FormModal } from '@/shared/components/form-modal';
 import { VendorForm } from '@/shared/components/forms/vendor-form';
@@ -151,6 +153,7 @@ export default function OutsourcingPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ReportDownloadButtons generateAction={generateVendorReport} filenameBase="vendor-risk" />
           <button onClick={() => setShowAddVendor(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             + הוסף ספק
           </button>

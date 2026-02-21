@@ -7,7 +7,7 @@ import {
   Shield, BarChart3, Handshake, ShieldCheck, Lock, ShieldAlert,
   Zap, AlertTriangle, Target, ArrowUpRight, ArrowDownRight,
   Users, Clock, TrendingUp, Activity, CheckSquare, Layers,
-  CreditCard, Gauge, FileWarning, FileOutput, ChevronLeft,
+  CreditCard, Gauge, FileWarning, FileOutput, ChevronLeft, Settings2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -22,6 +22,18 @@ import { ActivityFeed } from '@/shared/components/activity-feed';
 import { computeCompliance, MODULE_WEIGHTS } from '@/shared/lib/compliance-engine';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateDashboardReport } from '@/app/actions/report-generate';
+import { useWidgetOrder, WidgetOrderModal, type WidgetDef } from '@/shared/components/widget-order';
+
+const WIDGET_DEFS: WidgetDef[] = [
+  { id: 'alerts', label: 'התראות איחור' },
+  { id: 'agents', label: 'תור סוכנים' },
+  { id: 'kpis', label: 'כרטיסי KPI' },
+  { id: 'charts-trend', label: 'מגמה + בנצ׳מארק' },
+  { id: 'charts-modules', label: 'מודולים + התפלגות' },
+  { id: 'bottom', label: 'מועדים + פעילות' },
+];
 
 /* ═══════════════════════════════════════════════
    Demo data — exact match to V11 JSX
@@ -227,6 +239,8 @@ function AgentPushCard({ item }: { item: PushItem }) {
 export default function DashboardPage() {
   const [dashFilter, setDashFilter] = useState<'all' | 'risk' | 'cyber'>('all');
   const [dbData, setDbData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const { state: widgetState, setOrder: setWidgetOrder, visibleOrder } = useWidgetOrder(WIDGET_DEFS);
 
   useEffect(() => {
     getDashboardData().then(setDbData).catch(() => {/* silent fallback to demo data */});
@@ -280,57 +294,25 @@ export default function DashboardPage() {
     year: 'numeric',
   });
 
-  return (
-    <>
-      {/* ═══ Overdue alert banner ═══ */}
-      {overdueCount > 0 && (
-        <div
-          style={{
-            background: C.dangerBg,
-            border: '1px solid #F5C6C0',
-            borderRadius: 10,
-            padding: '10px 16px',
-            marginBottom: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <AlertTriangle size={15} color={C.danger} />
-          <span style={{ fontSize: 13, color: C.danger, fontWeight: 600, fontFamily: 'var(--font-assistant)', flex: 1 }}>
-            {overdueCount} פריטים באיחור
-          </span>
-          <button
-            style={{
-              background: C.danger, color: 'white', border: 'none',
-              padding: '5px 14px', borderRadius: 6, fontSize: 11,
-              fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)',
-            }}
-          >
-            צפה
-          </button>
-        </div>
-      )}
+  /* Widget section renderers keyed by widget id */
+  const widgetSections: Record<string, React.ReactNode> = {
+    alerts: overdueCount > 0 ? (
+      <div key="alerts" style={{ background: C.dangerBg, border: '1px solid #F5C6C0', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <AlertTriangle size={15} color={C.danger} />
+        <span style={{ fontSize: 13, color: C.danger, fontWeight: 600, fontFamily: 'var(--font-assistant)', flex: 1 }}>
+          {overdueCount} פריטים באיחור
+        </span>
+        <button style={{ background: C.danger, color: 'white', border: 'none', padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)' }}>
+          צפה
+        </button>
+      </div>
+    ) : null,
 
-      {/* ═══ Agent Push Queue ═══ */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, rgba(123,97,255,0.06), rgba(0,212,255,0.06))',
-          border: '1px solid rgba(123,97,255,0.15)',
-          borderRadius: 14,
-          padding: '16px 20px',
-          marginBottom: 16,
-        }}
-      >
+    agents: (
+      <div key="agents" style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.06), rgba(0,212,255,0.06))', border: '1px solid rgba(123,97,255,0.15)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div
-              style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: 'linear-gradient(135deg, #7B61FF, #00D4FF)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #7B61FF, #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Zap size={14} color="white" />
             </div>
             <div>
@@ -340,13 +322,7 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
-          <span
-            style={{
-              background: 'linear-gradient(135deg, #7B61FF, #00D4FF)',
-              color: 'white', fontSize: 10, fontWeight: 700,
-              padding: '3px 10px', borderRadius: 10, fontFamily: 'var(--font-rubik)',
-            }}
-          >
+          <span style={{ background: 'linear-gradient(135deg, #7B61FF, #00D4FF)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, fontFamily: 'var(--font-rubik)' }}>
             {highPriorityCount} דחופים
           </span>
         </div>
@@ -355,18 +331,21 @@ export default function DashboardPage() {
             <AgentPushCard key={item.id} item={item} />
           ))}
           {AGENT_PUSH_QUEUE.length > 3 && (
-            <div
-              style={{
-                textAlign: 'center', fontSize: 11, color: C.accent,
-                fontFamily: 'var(--font-rubik)', padding: '4px 0',
-                cursor: 'pointer', fontWeight: 600,
-              }}
-            >
+            <div style={{ textAlign: 'center', fontSize: 11, color: C.accent, fontFamily: 'var(--font-rubik)', padding: '4px 0', cursor: 'pointer', fontWeight: 600 }}>
               +{AGENT_PUSH_QUEUE.length - 3} פריטים נוספים ←
             </div>
           )}
         </div>
       </div>
+    ),
+  };
+
+  return (
+    <>
+      {/* ═══ Ordered widget sections (before header) ═══ */}
+      {visibleOrder.filter(id => id === 'alerts' || id === 'agents').map(id => (
+        <div key={id}>{widgetSections[id]}</div>
+      ))}
 
       {/* ═══ Dashboard header + filter ═══ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
@@ -378,7 +357,22 @@ export default function DashboardPage() {
             אשראי פייננס בע״מ · {today}
           </p>
         </div>
-        <div style={{ display: 'flex', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, padding: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowCustomize(true)}
+            title="התאמת דשבורד"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '7px 12px', background: C.surface,
+              border: `1px solid ${C.border}`, borderRadius: 8,
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-rubik)', color: C.textSec,
+            }}
+          >
+            <Settings2 size={13} /> התאמה
+          </button>
+          <ReportDownloadButtons generateAction={generateDashboardReport} filenameBase="dashboard" />
+          <div style={{ display: 'flex', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, padding: 3 }}>
           {([
             { id: 'all' as const, label: 'הכל', Icon: Layers },
             { id: 'risk' as const, label: 'ניהול סיכונים', Icon: Shield },
@@ -400,221 +394,218 @@ export default function DashboardPage() {
               <f.Icon size={13} />{f.label}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
-      {/* ═══ KPI cards row ═══ */}
-      <div className="rg-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
-        {/* Score ring card */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
-          <ScoreRing score={overallScore} size={110} label="ציון עמידה" />
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 8 }}>
-              {dashFilter === 'all' ? 'ציון כולל' : dashFilter === 'risk' ? 'ניהול סיכונים' : 'סיכוני סייבר'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-              {overallScore >= benchmarkScore
-                ? <ArrowUpRight size={14} color={C.success} />
-                : <ArrowDownRight size={14} color={C.danger} />}
-              <span style={{ fontSize: 12, color: overallScore >= benchmarkScore ? C.success : C.danger, fontWeight: 600, fontFamily: 'var(--font-rubik)' }}>
-                {overallScore >= benchmarkScore ? '+' : ''}{overallScore - benchmarkScore}% מהשוק
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
-              ממוצע שוק: {benchmarkScore}%
-            </div>
-          </div>
-        </div>
-
-        {/* Requirements met card */}
-        <Link href="/he/regulation" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textDecoration: 'none', display: 'block', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-            <Target size={13} color={C.accent} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>עמידה בדרישות</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: C.accent, fontFamily: 'var(--font-rubik)' }}>{metReqs}</span>
-            <span style={{ fontSize: 15, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>/ {totalReqs}</span>
-          </div>
-          <div style={{ background: C.borderLight, borderRadius: 6, height: 8, overflow: 'hidden', marginBottom: 4 }}>
-            <div style={{ width: `${compliancePct}%`, height: '100%', borderRadius: 6, background: C.accentGrad }} />
-          </div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{compliancePct}% מולאו</div>
-        </Link>
-
-        {/* Two stacked mini-cards */}
-        <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 10 }}>
-          {([
-            { v: '12', l: 'סיכונים פתוחים', c: C.danger, Icon: AlertTriangle, bg: C.dangerBg },
-            { v: '6', l: 'ספקים פעילים', c: C.accent, Icon: Users, bg: C.accentLight },
-          ] as const).map((s, i) => (
-            <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <s.Icon size={16} color={s.c} />
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: s.c, fontFamily: 'var(--font-rubik)' }}>{s.v}</div>
-                <div style={{ fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>{s.l}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══ Charts row 1: Trend + Radar ═══ */}
-      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
-        <ChartCard title="מגמת עמידה מול ממוצע שוק" Icon={TrendingUp}>
-          <div style={{ display: 'flex', gap: 14, marginBottom: 8, justifyContent: 'flex-end' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'var(--font-assistant)', color: C.accent }}>
-              <div style={{ width: 16, height: 3, borderRadius: 2, background: C.accent }} />אתם
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'var(--font-assistant)', color: C.textMuted }}>
-              <div style={{ width: 16, height: 0, borderTop: '2px dashed #8896A6' }} />ממוצע שוק
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={trend} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gS" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={C.accent} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.borderLight} />
-              <XAxis dataKey="month" fontSize={10} fontFamily="Assistant" tick={{ fill: C.textMuted }} />
-              <YAxis domain={[0, 100]} fontSize={10} tick={{ fill: C.textMuted }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="score" name="אתם" stroke={C.accent} strokeWidth={2.5} fill="url(#gS)" dot={{ r: 3, fill: C.accent }} />
-              <Line type="monotone" dataKey="benchmark" name="ממוצע שוק" stroke={C.textMuted} strokeWidth={1.5} strokeDasharray="6 3" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="בנצ׳מארק מול שוק" Icon={Target}>
-          <ResponsiveContainer width="100%" height={210}>
-            <RadarChart data={radar} margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
-              <PolarGrid stroke={C.borderLight} />
-              <PolarAngleAxis dataKey="subject" fontSize={9} fontFamily="Assistant" tick={{ fill: C.textSec }} />
-              <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-              <Radar name="אתם" dataKey="you" stroke={C.accent} fill={C.accent} fillOpacity={0.2} strokeWidth={2} />
-              <Radar name="שוק" dataKey="market" stroke={C.textMuted} fill={C.textMuted} fillOpacity={0.05} strokeWidth={1.5} strokeDasharray="4 3" />
-            </RadarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* ═══ Charts row 2: Modules + Pie charts ═══ */}
-      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
-        <ChartCard title="מודולים" Icon={Layers}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {modules.map((m) => {
-              const color = m.score >= 80 ? C.success : m.score >= 50 ? C.warning : C.danger;
-              const Ic = m.Icon;
-              const href = MODULE_ROUTES[m.id] || '/he';
-              return (
-                <Link
-                  key={m.id}
-                  href={href}
-                  style={{
-                    background: C.borderLight, borderRadius: 8, padding: 12,
-                    border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all 0.1s',
-                    textDecoration: 'none', display: 'block',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 6, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Ic size={13} color={C.accent} />
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)', flex: 1 }}>{m.name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color, fontFamily: 'var(--font-rubik)' }}>{m.score}%</span>
-                  </div>
-                  <div style={{ background: 'white', borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                    <div style={{ width: `${m.score}%`, height: '100%', borderRadius: 3, background: color }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
-                    <span>{m.met}/{m.reqs} דרישות</span>
-                    {m.tasks > 0 && <span>{m.tasks} משימות</span>}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </ChartCard>
-
-        <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 14 }}>
-          <ChartCard title="התפלגות סיכונים" Icon={BarChart3}>
-            <ResponsiveContainer width="100%" height={100}>
-              <RPieChart>
-                <Pie data={RISK_DIST} cx="50%" cy="50%" innerRadius={28} outerRadius={45} paddingAngle={3} dataKey="value">
-                  {RISK_DIST.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-              </RPieChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-              {RISK_DIST.map((e, i) => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>
-                  <div style={{ width: 7, height: 7, borderRadius: 2, background: e.color }} />{e.name} ({e.value})
-                </span>
-              ))}
-            </div>
-          </ChartCard>
-
-          <ChartCard title="סטטוס קומפליאנס" Icon={CheckSquare}>
-            <ResponsiveContainer width="100%" height={100}>
-              <RPieChart>
-                <Pie data={COMPLIANCE_DIST} cx="50%" cy="50%" innerRadius={28} outerRadius={45} paddingAngle={3} dataKey="value">
-                  {COMPLIANCE_DIST.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-              </RPieChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {COMPLIANCE_DIST.map((e, i) => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>
-                  <div style={{ width: 7, height: 7, borderRadius: 2, background: e.color }} />{e.name} ({e.value})
-                </span>
-              ))}
-            </div>
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* ═══ Bottom row: Deadlines + Activity ═══ */}
-      <div className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <ChartCard title="מועדים קרובים" Icon={Clock}>
-          {filteredTasks.map((t, i) => {
-            const s = TASK_STYLE[t.status];
-            const StatusIcon = s.Icon;
+      {/* ═══ Ordered widget sections (after header) ═══ */}
+      {visibleOrder.filter(id => id !== 'alerts' && id !== 'agents').map(id => {
+        switch (id) {
+          case 'kpis':
             return (
-              <div
-                key={i}
-                style={{
-                  padding: '9px 0',
-                  borderBottom: i < filteredTasks.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: C.text, fontFamily: 'var(--font-assistant)' }}>{t.title}</div>
-                  <div style={{ fontSize: 10, color: C.textMuted }}>{t.mod} · {t.due}</div>
+              <div key="kpis" className="rg-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <ScoreRing score={overallScore} size={110} label="ציון עמידה" />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 8 }}>
+                      {dashFilter === 'all' ? 'ציון כולל' : dashFilter === 'risk' ? 'ניהול סיכונים' : 'סיכוני סייבר'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                      {overallScore >= benchmarkScore
+                        ? <ArrowUpRight size={14} color={C.success} />
+                        : <ArrowDownRight size={14} color={C.danger} />}
+                      <span style={{ fontSize: 12, color: overallScore >= benchmarkScore ? C.success : C.danger, fontWeight: 600, fontFamily: 'var(--font-rubik)' }}>
+                        {overallScore >= benchmarkScore ? '+' : ''}{overallScore - benchmarkScore}% מהשוק
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
+                      ממוצע שוק: {benchmarkScore}%
+                    </div>
+                  </div>
                 </div>
-                <span
-                  style={{
-                    background: s.bg, color: s.c, fontSize: 10, fontWeight: 600,
-                    padding: '2px 9px', borderRadius: 5, fontFamily: 'var(--font-rubik)',
-                    display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
-                  }}
-                >
-                  <StatusIcon size={9} />{s.l}
-                </span>
+                <Link href="/he/regulation" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textDecoration: 'none', display: 'block', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                    <Target size={13} color={C.accent} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>עמידה בדרישות</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                    <span style={{ fontSize: 32, fontWeight: 800, color: C.accent, fontFamily: 'var(--font-rubik)' }}>{metReqs}</span>
+                    <span style={{ fontSize: 15, color: C.textMuted, fontFamily: 'var(--font-rubik)' }}>/ {totalReqs}</span>
+                  </div>
+                  <div style={{ background: C.borderLight, borderRadius: 6, height: 8, overflow: 'hidden', marginBottom: 4 }}>
+                    <div style={{ width: `${compliancePct}%`, height: '100%', borderRadius: 6, background: C.accentGrad }} />
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{compliancePct}% מולאו</div>
+                </Link>
+                <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 10 }}>
+                  {([
+                    { v: '12', l: 'סיכונים פתוחים', c: C.danger, Icon: AlertTriangle, bg: C.dangerBg },
+                    { v: '6', l: 'ספקים פעילים', c: C.accent, Icon: Users, bg: C.accentLight },
+                  ] as const).map((s, i) => (
+                    <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <s.Icon size={16} color={s.c} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: s.c, fontFamily: 'var(--font-rubik)' }}>{s.v}</div>
+                        <div style={{ fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>{s.l}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
-          })}
-        </ChartCard>
 
-        <ChartCard title="פעילות אחרונה" Icon={Activity}>
-          <ActivityFeed limit={6} />
-        </ChartCard>
-      </div>
+          case 'charts-trend':
+            return (
+              <div key="charts-trend" className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+                <ChartCard title="מגמת עמידה מול ממוצע שוק" Icon={TrendingUp}>
+                  <div style={{ display: 'flex', gap: 14, marginBottom: 8, justifyContent: 'flex-end' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'var(--font-assistant)', color: C.accent }}>
+                      <div style={{ width: 16, height: 3, borderRadius: 2, background: C.accent }} />אתם
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'var(--font-assistant)', color: C.textMuted }}>
+                      <div style={{ width: 16, height: 0, borderTop: '2px dashed #64748B' }} />ממוצע שוק
+                    </span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={190}>
+                    <AreaChart data={trend} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gS" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={C.accent} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.borderLight} />
+                      <XAxis dataKey="month" fontSize={10} fontFamily="Assistant" tick={{ fill: C.textMuted }} />
+                      <YAxis domain={[0, 100]} fontSize={10} tick={{ fill: C.textMuted }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="score" name="אתם" stroke={C.accent} strokeWidth={2.5} fill="url(#gS)" dot={{ r: 3, fill: C.accent }} />
+                      <Line type="monotone" dataKey="benchmark" name="ממוצע שוק" stroke={C.textMuted} strokeWidth={1.5} strokeDasharray="6 3" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+                <ChartCard title="בנצ׳מארק מול שוק" Icon={Target}>
+                  <ResponsiveContainer width="100%" height={210}>
+                    <RadarChart data={radar} margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
+                      <PolarGrid stroke={C.borderLight} />
+                      <PolarAngleAxis dataKey="subject" fontSize={9} fontFamily="Assistant" tick={{ fill: C.textSec }} />
+                      <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar name="אתם" dataKey="you" stroke={C.accent} fill={C.accent} fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="שוק" dataKey="market" stroke={C.textMuted} fill={C.textMuted} fillOpacity={0.05} strokeWidth={1.5} strokeDasharray="4 3" />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            );
+
+          case 'charts-modules':
+            return (
+              <div key="charts-modules" className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+                <ChartCard title="מודולים" Icon={Layers}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {modules.map((m) => {
+                      const color = m.score >= 80 ? C.success : m.score >= 50 ? C.warning : C.danger;
+                      const Ic = m.Icon;
+                      const href = MODULE_ROUTES[m.id] || '/he';
+                      return (
+                        <Link key={m.id} href={href} style={{ background: C.borderLight, borderRadius: 8, padding: 12, border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'all 0.1s', textDecoration: 'none', display: 'block' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: 6, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Ic size={13} color={C.accent} />
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)', flex: 1 }}>{m.name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color, fontFamily: 'var(--font-rubik)' }}>{m.score}%</span>
+                          </div>
+                          <div style={{ background: 'white', borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                            <div style={{ width: `${m.score}%`, height: '100%', borderRadius: 3, background: color }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
+                            <span>{m.met}/{m.reqs} דרישות</span>
+                            {m.tasks > 0 && <span>{m.tasks} משימות</span>}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </ChartCard>
+                <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 14 }}>
+                  <ChartCard title="התפלגות סיכונים" Icon={BarChart3}>
+                    <ResponsiveContainer width="100%" height={100}>
+                      <RPieChart>
+                        <Pie data={RISK_DIST} cx="50%" cy="50%" innerRadius={28} outerRadius={45} paddingAngle={3} dataKey="value">
+                          {RISK_DIST.map((e, i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                      </RPieChart>
+                    </ResponsiveContainer>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      {RISK_DIST.map((e, i) => (
+                        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>
+                          <div style={{ width: 7, height: 7, borderRadius: 2, background: e.color }} />{e.name} ({e.value})
+                        </span>
+                      ))}
+                    </div>
+                  </ChartCard>
+                  <ChartCard title="סטטוס קומפליאנס" Icon={CheckSquare}>
+                    <ResponsiveContainer width="100%" height={100}>
+                      <RPieChart>
+                        <Pie data={COMPLIANCE_DIST} cx="50%" cy="50%" innerRadius={28} outerRadius={45} paddingAngle={3} dataKey="value">
+                          {COMPLIANCE_DIST.map((e, i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                      </RPieChart>
+                    </ResponsiveContainer>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {COMPLIANCE_DIST.map((e, i) => (
+                        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>
+                          <div style={{ width: 7, height: 7, borderRadius: 2, background: e.color }} />{e.name} ({e.value})
+                        </span>
+                      ))}
+                    </div>
+                  </ChartCard>
+                </div>
+              </div>
+            );
+
+          case 'bottom':
+            return (
+              <div key="bottom" className="rg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <ChartCard title="מועדים קרובים" Icon={Clock}>
+                  {filteredTasks.map((t, i) => {
+                    const s = TASK_STYLE[t.status];
+                    const StatusIcon = s.Icon;
+                    return (
+                      <div key={i} style={{ padding: '9px 0', borderBottom: i < filteredTasks.length - 1 ? `1px solid ${C.borderLight}` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: C.text, fontFamily: 'var(--font-assistant)' }}>{t.title}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted }}>{t.mod} · {t.due}</div>
+                        </div>
+                        <span style={{ background: s.bg, color: s.c, fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 5, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                          <StatusIcon size={9} />{s.l}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </ChartCard>
+                <ChartCard title="פעילות אחרונה" Icon={Activity}>
+                  <ActivityFeed limit={6} />
+                </ChartCard>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      })}
+
+      {/* ═══ Widget Customize Modal ═══ */}
+      {showCustomize && (
+        <WidgetOrderModal
+          widgets={WIDGET_DEFS}
+          state={widgetState}
+          onSave={setWidgetOrder}
+          onClose={() => setShowCustomize(false)}
+        />
+      )}
     </>
   );
 }

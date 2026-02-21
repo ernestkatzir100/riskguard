@@ -44,6 +44,9 @@ const ACTION_LABELS: Record<string, string> = {
   file_uploaded: 'הועלה קובץ',
   invited: 'הוזמן',
   onboarding_completed: 'הושלמה הגדרה',
+  role_changed: 'תפקיד שונה',
+  removed: 'הוסר',
+  imported: 'יובא',
 };
 
 function formatAction(action: string): string {
@@ -66,11 +69,14 @@ const DEMO_AUDIT: AuditEntry[] = [
   { id: 10, userId: null, action: 'vendor_assessment.created', entityType: 'vendor_assessment', entityId: '1', details: { vendorId: '1' }, timestamp: new Date('2025-01-10T12:00:00') },
 ];
 
+const PAGE_SIZE = 25;
+
 export default function AuditPage() {
   const [entries, setEntries] = useState<AuditEntry[]>(DEMO_AUDIT);
   const [entityFilter, setEntityFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
   const loadAudit = useCallback(async () => {
     setLoading(true);
@@ -92,6 +98,9 @@ export default function AuditPage() {
     if (actionFilter && !e.action.includes(actionFilter)) return false;
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleExport = () => {
     const BOM = '\uFEFF';
@@ -148,7 +157,7 @@ export default function AuditPage() {
         <Filter size={14} color={C.textMuted} />
         <select
           value={entityFilter}
-          onChange={(e) => setEntityFilter(e.target.value)}
+          onChange={(e) => { setEntityFilter(e.target.value); setPage(1); }}
           style={{
             padding: '6px 12px', border: `1px solid ${C.border}`,
             borderRadius: 8, fontSize: 12, fontFamily: 'var(--font-assistant)',
@@ -162,7 +171,7 @@ export default function AuditPage() {
         </select>
         <select
           value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
+          onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
           style={{
             padding: '6px 12px', border: `1px solid ${C.border}`,
             borderRadius: 8, fontSize: 12, fontFamily: 'var(--font-assistant)',
@@ -214,7 +223,7 @@ export default function AuditPage() {
                   אין רשומות
                 </td>
               </tr>
-            ) : filtered.map((entry) => (
+            ) : paged.map((entry) => (
               <tr key={entry.id} style={{ borderBottom: `1px solid ${C.borderLight}` }}>
                 <td style={{ padding: '10px 14px', fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', whiteSpace: 'nowrap' }}>
                   {new Date(entry.timestamp).toLocaleString('he-IL')}
@@ -248,6 +257,37 @@ export default function AuditPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={{
+              padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+              fontFamily: 'var(--font-rubik)', cursor: page === 1 ? 'not-allowed' : 'pointer',
+              border: `1px solid ${C.border}`, background: C.surface, color: page === 1 ? C.textMuted : C.accent,
+            }}
+          >
+            הקודם
+          </button>
+          <span style={{ fontSize: 12, fontFamily: 'var(--font-rubik)', color: C.textSec }}>
+            עמוד {page} מתוך {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            style={{
+              padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+              fontFamily: 'var(--font-rubik)', cursor: page === totalPages ? 'not-allowed' : 'pointer',
+              border: `1px solid ${C.border}`, background: C.surface, color: page === totalPages ? C.textMuted : C.accent,
+            }}
+          >
+            הבא
+          </button>
+        </div>
+      )}
     </div>
   );
 }

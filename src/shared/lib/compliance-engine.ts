@@ -37,9 +37,9 @@ export const MODULE_WEIGHTS: Record<string, number> = {
 };
 
 const COLORS = {
-  success: '#2E8B57',
-  warning: '#C8922A',
-  danger:  '#C0392B',
+  success: '#16A34A',
+  warning: '#D97706',
+  danger:  '#DC2626',
 };
 
 export function scoreColor(score: number): string {

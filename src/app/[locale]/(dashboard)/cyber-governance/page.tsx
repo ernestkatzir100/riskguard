@@ -210,7 +210,7 @@ export default function CyberGovernancePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <div style={{
               width: 44, height: 44, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #4A8EC2, #5BB8C9)',
+              background: 'linear-gradient(135deg, #1D6FAB, #0E9AAA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white', fontSize: 15, fontWeight: 700,
               fontFamily: 'var(--font-rubik)',

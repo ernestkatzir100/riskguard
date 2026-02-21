@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateBCPReport } from '@/app/actions/report-generate';
 import { getBCPPlan, getCriticalFunctions, getBCPTests, createBCPTest, deleteBCPTest } from '@/app/actions/bcp';
 import { FormModal } from '@/shared/components/form-modal';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
@@ -163,6 +165,7 @@ export default function BCPPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ReportDownloadButtons generateAction={generateBCPReport} filenameBase="bcp" />
           <div style={{ background: '#E0F2FE', color: '#0369A1', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <BookOpen size={12} /> חוזר 2024-10-2 § 2(ב)(5)
           </div>

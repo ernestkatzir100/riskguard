@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateComplianceReport } from '@/app/actions/report-generate';
 
 const STATUS_LABELS = {
   met: { l: 'עומד', c: C.success, bg: C.successBg },
@@ -210,6 +212,7 @@ export default function RegulationPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ReportDownloadButtons generateAction={generateComplianceReport} filenameBase="compliance" />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: totalPct >= 60 ? C.success : C.warning, fontFamily: 'var(--font-rubik)' }}>{totalPct}%</div>
             <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>עמידה כוללת</div>

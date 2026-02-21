@@ -8,6 +8,8 @@ import { TaskForm } from '@/shared/components/forms/task-form';
 import { getTasks, createTask, updateTask, deleteTask, updateTaskStatus, completeTask } from '@/app/actions/tasks';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
 import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
+import { ImportButton } from '@/shared/components/import-button';
+import { importTasks } from '@/app/actions/import';
 
 /* ═══ Types ═══ */
 type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'overdue';
@@ -268,18 +270,21 @@ export default function TasksPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '10px 20px', background: C.accent, color: '#fff',
-            border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'var(--font-rubik)',
-          }}
-        >
-          <Plus size={16} />
-          הוסף משימה
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 20px', background: C.accent, color: '#fff',
+              border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-rubik)',
+            }}
+          >
+            <Plus size={16} />
+            הוסף משימה
+          </button>
+          <ImportButton importAction={importTasks} label="ייבוא משימות" />
+        </div>
       </div>
 
       {/* Stats Row */}

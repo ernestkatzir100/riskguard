@@ -2,34 +2,34 @@
 @import "tailwindcss";
 
 @theme {
-  /* ═══ RiskGuard Design System — exact V11 palette ═══ */
+  /* ═══ RiskGuard Design System — vivid light palette ═══ */
 
   /* Navigation */
-  --color-nav-bg: #1E2D3D;
-  --color-nav-hover: #2A3F52;
+  --color-nav-bg: #1A2740;
+  --color-nav-hover: #253854;
 
   /* Core palette */
-  --color-accent: #4A8EC2;
-  --color-accent-teal: #5BB8C9;
-  --color-accent-light: #E8F4FA;
-  --color-accent-dark: #3A7AAF;
+  --color-accent: #1D6FAB;
+  --color-accent-teal: #0E9AAA;
+  --color-accent-light: #E0F2FE;
+  --color-accent-dark: #155A8A;
 
   /* Semantic */
-  --color-success: #2E8B57;
-  --color-success-bg: #EFF8F2;
-  --color-warning: #C8922A;
-  --color-warning-bg: #FDF8ED;
-  --color-danger: #C0392B;
-  --color-danger-bg: #FDF0EE;
+  --color-success: #16A34A;
+  --color-success-bg: #DCFCE7;
+  --color-warning: #D97706;
+  --color-warning-bg: #FEF3C7;
+  --color-danger: #DC2626;
+  --color-danger-bg: #FEE2E2;
 
   /* Surfaces & text */
   --color-bg: #F5F7FA;
   --color-surface: #FFFFFF;
-  --color-border: #E1E8EF;
-  --color-border-light: #F0F3F7;
-  --color-text: #1A2332;
-  --color-text-sec: #4A5568;
-  --color-text-muted: #8896A6;
+  --color-border: #CBD5E1;
+  --color-border-light: #E2E8F0;
+  --color-text: #0F172A;
+  --color-text-sec: #475569;
+  --color-text-muted: #64748B;
 }
 
 :root {
@@ -118,7 +118,7 @@ th,
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #F0F3F7 25%, #E1E8EF 50%, #F0F3F7 75%);
+  background: linear-gradient(90deg, #E2E8F0 25%, #CBD5E1 50%, #E2E8F0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 6px;

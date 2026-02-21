@@ -13,6 +13,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
+import { useBranding } from '@/shared/hooks/use-branding';
 
 /* ═══════════════════════════════════════════════
    Navigation structure — exact match to V11 JSX
@@ -238,6 +239,7 @@ export function TopNav() {
   const router = useRouter();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { branding } = useBranding();
 
   const handleLogout = async () => {
     try {
@@ -276,23 +278,31 @@ export function TopNav() {
       >
         {/* Right side: Logo + company */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: C.accentGrad,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 17,
-              fontWeight: 800,
-              color: 'white',
-              fontFamily: 'var(--font-rubik)',
-            }}
-          >
-            R
-          </div>
+          {branding.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt="לוגו"
+              style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                background: C.accentGrad,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 17,
+                fontWeight: 800,
+                color: 'white',
+                fontFamily: 'var(--font-rubik)',
+              }}
+            >
+              R
+            </div>
+          )}
           <span
             style={{
               color: 'white',
@@ -313,7 +323,7 @@ export function TopNav() {
                 fontFamily: 'var(--font-assistant)',
               }}
             >
-              אשראי פייננס בע״מ
+              {branding.companyName || 'אשראי פייננס בע״מ'}
             </span>
           </span>
         </div>

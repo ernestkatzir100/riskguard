@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import {
   FileOutput, FileText, CheckSquare, Calendar,
-  Plus, Loader2,
+  Plus, Download,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { generateBoardQuarterlyReport } from '@/app/actions/reports/board-quarterly';
-import { generateAnnualRiskAssessment } from '@/app/actions/reports/annual-risk-assessment';
-import { generateComplianceGapReport } from '@/app/actions/reports/compliance-gap';
-import { generateVendorRiskReport } from '@/app/actions/reports/vendor-risk';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import {
+  generateRiskRegisterReport, generateComplianceReport, generateBoardReport,
+  generateKRIReport, generateOperationalRiskReport, generateDashboardReport,
+  generateCyberIncidentsReport, generateBCPReport, generateVendorReport,
+  generateRiskGovernanceReport, generateAnnualReport,
+} from '@/app/actions/report-generate';
 
 const DOC_STATUS = {
   approved: { l: 'מאושר', c: C.success, bg: C.successBg },
@@ -61,32 +64,23 @@ const APPROVAL_WORKFLOWS = [
   { doc: 'תוכנית BCP v1.1', step: 1, steps: 2, currentApprover: 'יוסי לוי', status: 'pending' },
 ];
 
-const REPORT_GENERATORS: Record<string, { label: string; fn: () => Promise<string> }> = {
-  'board-quarterly': { label: 'דוח רבעוני לדירקטוריון', fn: generateBoardQuarterlyReport },
-  'annual-risk': { label: 'הערכת סיכונים שנתית', fn: generateAnnualRiskAssessment },
-  'compliance-gap': { label: 'דוח פערי ציות', fn: generateComplianceGapReport },
-  'vendor-risk': { label: 'דוח סיכוני ספקים', fn: generateVendorRiskReport },
-};
+const REPORT_EXPORTS = [
+  { id: 'annual', label: 'דוח שנתי מקיף', fn: generateAnnualReport, file: 'annual-report' },
+  { id: 'dashboard', label: 'סיכום מנהלים', fn: generateDashboardReport, file: 'dashboard-summary' },
+  { id: 'risks', label: 'מאגר סיכונים', fn: generateRiskRegisterReport, file: 'risk-register' },
+  { id: 'compliance', label: 'עמידה ברגולציה', fn: generateComplianceReport, file: 'compliance' },
+  { id: 'board', label: 'דירקטוריון', fn: generateBoardReport, file: 'board' },
+  { id: 'kri', label: 'מדדי סיכון (KRI)', fn: generateKRIReport, file: 'kri' },
+  { id: 'ops', label: 'סיכון תפעולי', fn: generateOperationalRiskReport, file: 'operational-risk' },
+  { id: 'cyber', label: 'אירועי סייבר', fn: generateCyberIncidentsReport, file: 'cyber-incidents' },
+  { id: 'bcp', label: 'המשכיות עסקית', fn: generateBCPReport, file: 'bcp' },
+  { id: 'vendors', label: 'סיכוני מיקור חוץ', fn: generateVendorReport, file: 'vendor-risk' },
+  { id: 'governance', label: 'ממשל סיכונים', fn: generateRiskGovernanceReport, file: 'risk-governance' },
+];
 
 export default function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<'templates' | 'schedule' | 'approval'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'schedule' | 'approval' | 'export'>('templates');
   const [filterCat, setFilterCat] = useState('הכל');
-  const [generating, setGenerating] = useState<string | null>(null);
-
-  async function handleGenerate(reportId: string) {
-    const gen = REPORT_GENERATORS[reportId];
-    if (!gen) return;
-    setGenerating(reportId);
-    try {
-      const html = await gen.fn();
-      const w = window.open();
-      w?.document.write(html);
-      w?.document.close();
-    } catch {
-      /* silent */
-    }
-    setGenerating(null);
-  }
 
   const docCats = ['הכל', ...Array.from(new Set(DOC_TEMPLATES.map(d => d.cat)))];
   const filtered = filterCat === 'הכל' ? DOC_TEMPLATES : DOC_TEMPLATES.filter(d => d.cat === filterCat);
@@ -109,26 +103,13 @@ export default function ReportsPage() {
             {DOC_TEMPLATES.length} תבניות · {stats.approved} מאושרים · {stats.draft} טיוטות · {stats.missing} חסרים
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {Object.entries(REPORT_GENERATORS).map(([id, gen]) => (
-            <button
-              key={id}
-              onClick={() => handleGenerate(id)}
-              disabled={generating !== null}
-              style={{
-                background: generating === id ? C.textMuted : C.accentGrad,
-                color: 'white', border: 'none', borderRadius: 8,
-                padding: '7px 16px', fontSize: 11, fontWeight: 600,
-                cursor: generating !== null ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5,
-                opacity: generating !== null && generating !== id ? 0.6 : 1,
-              }}
-            >
-              {generating === id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FileOutput size={12} />}
-              {gen.label}
-            </button>
-          ))}
-        </div>
+        <button onClick={() => setActiveTab('export')} style={{
+          background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8,
+          padding: '7px 16px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5,
+        }}>
+          <FileOutput size={12} /> ייצוא דוחות (Word / PDF)
+        </button>
       </div>
 
       {/* KPI Row */}
@@ -150,6 +131,7 @@ export default function ReportsPage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
         {([
           { id: 'templates' as const, l: 'ספריית תבניות', Icon: FileText },
+          { id: 'export' as const, l: 'ייצוא דוחות', Icon: Download },
           { id: 'schedule' as const, l: 'תזמון דוחות', Icon: Calendar },
           { id: 'approval' as const, l: 'תהליך אישור', Icon: CheckSquare },
         ]).map(t => (
@@ -197,6 +179,21 @@ export default function ReportsPage() {
             })}
           </div>
         </>
+      )}
+
+      {/* Export Tab */}
+      {activeTab === 'export' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {REPORT_EXPORTS.map(r => (
+            <div key={r.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)', marginBottom: 2 }}>{r.label}</div>
+                <div style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>Word / PDF</div>
+              </div>
+              <ReportDownloadButtons generateAction={r.fn} filenameBase={r.file} />
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Schedule Tab */}

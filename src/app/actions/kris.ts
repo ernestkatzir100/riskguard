@@ -41,8 +41,17 @@ export async function deleteKRI(id: string) {
 export async function updateKRI(id: string, data: unknown) {
   const user = await getCurrentUserOrDemo();
   const parsed = updateKRISchema.parse(data);
+
+  // Auto-detect breach: compare currentValue vs threshold
+  const updates = { ...parsed, updatedAt: new Date() };
+  const cv = parseFloat(String(parsed.currentValue ?? ''));
+  const th = parseFloat(String(parsed.threshold ?? ''));
+  if (!isNaN(cv) && !isNaN(th)) {
+    (updates as Record<string, unknown>).breached = cv > th;
+  }
+
   const [updated] = await db.update(kris)
-    .set({ ...parsed, updatedAt: new Date() })
+    .set(updates)
     .where(and(eq(kris.id, id), eq(kris.tenantId, user.tenant_id)))
     .returning();
   if (!updated) throw new Error('KRI not found');

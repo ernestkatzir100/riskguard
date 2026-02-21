@@ -12,6 +12,10 @@ import { FormModal } from '@/shared/components/form-modal';
 import { RiskForm } from '@/shared/components/forms/risk-form';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
 import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateRiskRegisterReport } from '@/app/actions/report-generate';
+import { ImportButton } from '@/shared/components/import-button';
+import { importRisks } from '@/app/actions/import';
 
 /* ═══════════════════════════════════════════════
    Risk & Control constants
@@ -341,6 +345,8 @@ export default function RiskRegisterPage() {
           <button onClick={() => setShowAddRisk(true)} style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             + הוסף סיכון
           </button>
+          <ImportButton importAction={importRisks} label="ייבוא סיכונים" />
+          <ReportDownloadButtons generateAction={generateRiskRegisterReport} filenameBase="risk-register" />
           <div style={{ display: 'flex', background: C.borderLight, borderRadius: 8, padding: 3 }}>
             {[
               { id: 'heatmap' as const, Icon: Grid3X3, l: 'מפת חום' },

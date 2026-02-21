@@ -5,6 +5,8 @@ import { C } from '@/shared/lib/design-tokens';
 import { BarChart3, AlertTriangle, Shield, CheckCircle, BookOpen, ExternalLink } from 'lucide-react';
 import { getControls } from '@/app/actions/controls';
 import { getRisks } from '@/app/actions/risks';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateOperationalRiskReport } from '@/app/actions/report-generate';
 
 const risks = [
   { id: 'OPS-R01', name: 'כשל מערכת ליבה', probability: 3, impact: 5, score: 15, status: 'open' as const, owner: 'דנה כהן' },
@@ -110,21 +112,24 @@ export default function OperationalRiskPage() {
   return (
     <div style={{ direction: 'rtl', fontFamily: 'var(--font-assistant)', color: C.text, padding: 24 }}>
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 10,
-          background: C.accentGrad, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <BarChart3 size={24} color="#fff" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 10,
+            background: C.accentGrad, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <BarChart3 size={24} color="#fff" />
+          </div>
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-rubik)', fontSize: 28, fontWeight: 700, margin: 0, color: C.text }}>
+              סיכון תפעולי
+            </h1>
+            <p style={{ margin: 0, fontSize: 14, color: C.textSec }}>
+              Operational Risk &middot; ניהול אירועי הפסד, הערכות סיכונים ובקרות פנימיות
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-rubik)', fontSize: 28, fontWeight: 700, margin: 0, color: C.text }}>
-            סיכון תפעולי
-          </h1>
-          <p style={{ margin: 0, fontSize: 14, color: C.textSec }}>
-            Operational Risk &middot; ניהול אירועי הפסד, הערכות סיכונים ובקרות פנימיות
-          </p>
-        </div>
+        <ReportDownloadButtons generateAction={generateOperationalRiskReport} filenameBase="operational-risk" />
       </div>
 
       {/* Regulation Badge */}

@@ -11,6 +11,8 @@ import { getComplianceStatus } from '@/app/actions/compliance';
 import { getRiskOfficer } from '@/app/actions/settings';
 import { getDocuments } from '@/app/actions/documents';
 import { C } from '@/shared/lib/design-tokens';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateRiskGovernanceReport } from '@/app/actions/report-generate';
 import { ScoreRing } from '@/shared/components/score-ring';
 
 /* ═══════════════════════════════════════════════
@@ -147,6 +149,7 @@ export default function RiskGovernancePage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ReportDownloadButtons generateAction={generateRiskGovernanceReport} filenameBase="risk-governance" />
           <ScoreRing score={78} size={80} label="שלמות ממשל" />
           <div style={{ background: complianceScore >= 70 ? C.successBg : C.warningBg, color: complianceScore >= 70 ? C.success : C.warning, fontSize: 13, fontWeight: 700, padding: '6px 14px', borderRadius: 8, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <CheckSquare size={14} /> {complianceScore}% עמידה

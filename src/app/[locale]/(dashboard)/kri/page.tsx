@@ -12,6 +12,8 @@ import { FormModal } from '@/shared/components/form-modal';
 import { KRIForm } from '@/shared/components/forms/kri-form';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
 import { EmptyState, EMPTY_STATES } from '@/shared/components/empty-state';
+import { ReportDownloadButtons } from '@/shared/components/report-download-buttons';
+import { generateKRIReport } from '@/app/actions/report-generate';
 
 /* ═══════════════════════════════════════════════
    KRI Data
@@ -210,12 +212,15 @@ export default function KRIPage() {
             ניטור רציף של מדדי סיכון ביחס לספים מותרים
           </p>
         </div>
-        <button
-          onClick={() => setShowAddKRI(true)}
-          style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}
-        >
-          <Plus size={14} /> מדד חדש
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowAddKRI(true)}
+            style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5 }}
+          >
+            <Plus size={14} /> מדד חדש
+          </button>
+          <ReportDownloadButtons generateAction={generateKRIReport} filenameBase="kri" />
+        </div>
       </div>
 
       {/* ═══ Breach Alert Banner ═══ */}
