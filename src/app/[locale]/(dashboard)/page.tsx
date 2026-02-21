@@ -232,7 +232,18 @@ export default function DashboardPage() {
     getDashboardData().then(setDbData).catch(() => {/* silent fallback to demo data */});
   }, []);
 
-  const modules = dashFilter === 'all' ? ALL_MODULES : ALL_MODULES.filter((m) => m.reg === dashFilter);
+  // Merge DB moduleScores into ALL_MODULES when available
+  const mergedModules = (() => {
+    if (!dbData?.moduleScores?.length) return ALL_MODULES;
+    const dbMap = new Map(dbData.moduleScores.map(ms => [ms.id, ms]));
+    return ALL_MODULES.map(m => {
+      const db = dbMap.get(m.id);
+      if (db) return { ...m, score: db.score, reqs: db.total || m.reqs, met: db.met || m.met };
+      return m;
+    });
+  })();
+
+  const modules = dashFilter === 'all' ? mergedModules : mergedModules.filter((m) => m.reg === dashFilter);
   const trend = TREND_DATA[dashFilter];
   const radar = RADAR_DATA[dashFilter];
   const overallScore = dbData && dashFilter === 'all' ? dbData.complianceScore : SCORES[dashFilter];
@@ -245,7 +256,20 @@ export default function DashboardPage() {
   const totalReqs = complianceResult.totalReqs;
   const metReqs = complianceResult.totalMet;
   const compliancePct = totalReqs ? Math.round((metReqs / totalReqs) * 100) : 0;
-  const filteredTasks = dashFilter === 'all' ? TASKS : TASKS.filter((t) => t.reg === dashFilter);
+  // Merge overdue tasks from DB when available
+  const mergedTasks: TaskItem[] = (() => {
+    if (!dbData?.overdueTasks?.length) return TASKS;
+    const dbTasks: TaskItem[] = dbData.overdueTasks.map((t: Record<string, unknown>) => ({
+      title: String(t.title ?? ''),
+      mod: String(t.module ?? ''),
+      due: t.dueDate ? new Date(t.dueDate as string).toLocaleDateString('he-IL') : '—',
+      status: 'overdue' as const,
+      reg: 'risk' as const,
+    }));
+    // Combine DB overdue + remaining hardcoded non-overdue items
+    return [...dbTasks, ...TASKS.filter(t => t.status !== 'overdue')];
+  })();
+  const filteredTasks = dashFilter === 'all' ? mergedTasks : mergedTasks.filter((t) => t.reg === dashFilter);
   const overdueCount = dbData ? dbData.overdueTasks.length : TASKS.filter((t) => t.status === 'overdue').length;
   const highPriorityCount = AGENT_PUSH_QUEUE.filter((p) => p.priority === 'high').length;
 

@@ -58,17 +58,36 @@ const IMPACT_COLORS: Record<string, string> = { 'קריטי': C.danger, 'גבו�
 
 export default function BCPPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'bia' | 'dr'>('overview');
+  const [biaProcesses, setBiaProcesses] = useState(BIA_PROCESSES);
+  const [drTests, setDrTests] = useState(DR_TESTS);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [planRes, funcsRes, testsRes] = await Promise.all([
+        const [, funcsRes, testsRes] = await Promise.all([
           getBCPPlan(),
           getCriticalFunctions(),
           getBCPTests(),
         ]);
-        // Only override if we got real data
-        if (planRes) console.log('[BCP] DB data loaded', { plan: !!planRes, functions: funcsRes?.length, tests: testsRes?.length });
+        if (funcsRes?.length) {
+          setBiaProcesses(funcsRes.map((f: Record<string, unknown>) => ({
+            name: String(f.functionName ?? ''),
+            rto: f.rtoHours ? `${f.rtoHours} שעות` : '—',
+            rpo: f.rpoHours ? `${f.rpoHours} שעות` : '—',
+            impact: Number(f.impactLevel) >= 5 ? 'קריטי' : Number(f.impactLevel) >= 4 ? 'גבוה' : 'בינוני',
+            alternative: String(f.dependencies ?? '—'),
+            status: 'partial' as const,
+          })));
+        }
+        if (testsRes?.length) {
+          setDrTests(testsRes.map((t: Record<string, unknown>) => ({
+            type: String(t.testType ?? ''),
+            frequency: '—',
+            lastTest: t.testDate ? new Date(t.testDate as string).toLocaleDateString('he-IL') : '—',
+            nextDue: t.nextTestDate ? new Date(t.nextTestDate as string).toLocaleDateString('he-IL') : '—',
+            status: 'ok' as const,
+          })));
+        }
       } catch { /* demo fallback */ }
     }
     loadData();
@@ -77,7 +96,7 @@ export default function BCPPage() {
   const complianceScore = 45;
   const docApproved = BCP_DOCUMENTS.filter(d => d.status === 'approved').length;
   const docMissing = BCP_DOCUMENTS.filter(d => d.status === 'missing').length;
-  const testsOverdue = DR_TESTS.filter(t => t.status === 'overdue' || t.status === 'missing').length;
+  const testsOverdue = drTests.filter(t => t.status === 'overdue' || t.status === 'missing').length;
 
   return (
     <div>
@@ -205,7 +224,7 @@ export default function BCPPage() {
                 </tr>
               </thead>
               <tbody>
-                {DR_TESTS.map((t, i) => {
+                {drTests.map((t, i) => {
                   const s = TEST_STATUS[t.status];
                   return (
                     <tr key={i} style={{ borderBottom: `1px solid ${C.borderLight}`, background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
@@ -251,7 +270,7 @@ export default function BCPPage() {
                 </tr>
               </thead>
               <tbody>
-                {BIA_PROCESSES.map((p, i) => (
+                {biaProcesses.map((p, i) => (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.borderLight}`, background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                     <td style={{ padding: '10px', fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{p.name}</td>
                     <td style={{ padding: '10px', fontFamily: 'var(--font-rubik)', fontWeight: 600 }}>{p.rto}</td>

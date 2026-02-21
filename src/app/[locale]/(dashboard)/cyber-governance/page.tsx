@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Lock, BookOpen, ShieldCheck, Server, User, Phone, Mail,
   Award, Calendar, AlertTriangle, ClipboardList, Monitor,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 import { getControls } from '@/app/actions/controls';
+import { getComplianceScore } from '@/app/actions/compliance';
 import { C } from '@/shared/lib/design-tokens';
 
 /* ═══════════════════════════════════════════════
@@ -52,11 +53,20 @@ const TYPE_ICON: Record<string, typeof Server> = {
    Cyber Governance Page
    ═══════════════════════════════════════════════ */
 export default function CyberGovernancePage() {
+  const [, setControlCount] = useState(0);
+  const [, setCompScore] = useState(72);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const controlsRes = await getControls();
-        if (controlsRes?.length) console.log('[CyberGovernance] DB data loaded', { controls: controlsRes.length });
+        const [controlsRes, scoreRes] = await Promise.all([
+          getControls(),
+          getComplianceScore(),
+        ]);
+        if (controlsRes?.length) setControlCount(controlsRes.length);
+        if (scoreRes && typeof scoreRes === 'object' && 'score' in (scoreRes as Record<string, unknown>)) {
+          setCompScore(Number((scoreRes as Record<string, unknown>).score ?? 72));
+        }
       } catch { /* demo fallback */ }
     }
     loadData();

@@ -252,15 +252,15 @@ export default function RiskRegisterPage() {
       if (result && Array.isArray(result) && result.length > 0) {
         const mapped: Risk[] = result.map((r: Record<string, unknown>) => ({
           id: String(r.id ?? ''),
-          name: String(r.name ?? ''),
-          cat: String(r.category ?? r.cat ?? ''),
+          name: String(r.title ?? ''),
+          cat: String(r.category ?? ''),
           module: String(r.module ?? ''),
-          inherent: Number(r.inherent ?? r.inherentRisk ?? 3),
-          reg: String(r.reg ?? r.regulation ?? ''),
-          section: String(r.section ?? ''),
-          reqId: String(r.reqId ?? ''),
-          controls: Array.isArray(r.controls) ? r.controls : [],
-          tier: r.tier ? String(r.tier) : undefined,
+          inherent: Number(r.riskScore ?? (Number(r.probability ?? 3) * Number(r.impact ?? 3))),
+          reg: String(r.regulationCode ?? ''),
+          section: String(r.sectionRef ?? ''),
+          reqId: String(r.reqCode ?? ''),
+          controls: [],
+          tier: undefined,
         }));
         setRisks(mapped);
       }

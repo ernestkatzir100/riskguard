@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { C } from '@/shared/lib/design-tokens';
 import { BarChart3, AlertTriangle, Shield, CheckCircle, BookOpen, ExternalLink } from 'lucide-react';
 import { getControls } from '@/app/actions/controls';
+import { getRisks } from '@/app/actions/risks';
 
 const risks = [
   { id: 'OPS-R01', name: 'כשל מערכת ליבה', probability: 3, impact: 5, score: 15, status: 'open' as const, owner: 'דנה כהן' },
@@ -64,21 +65,46 @@ function getScoreBg(score: number) {
 }
 
 export default function OperationalRiskPage() {
+  const [riskData, setRiskData] = useState(risks);
+  const [controlData, setControlData] = useState(controls);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const controlsRes = await getControls({ type: 'operational' });
-        if (controlsRes?.length) console.log('[OperationalRisk] DB data loaded', { controls: controlsRes.length });
+        const [risksRes, controlsRes] = await Promise.all([
+          getRisks({ category: 'operational' }),
+          getControls(),
+        ]);
+        if (risksRes?.length) {
+          setRiskData(risksRes.map((r: Record<string, unknown>, i: number) => ({
+            id: `OPS-R${String(i + 1).padStart(2, '0')}`,
+            name: String(r.title ?? ''),
+            probability: Number(r.probability ?? 3),
+            impact: Number(r.impact ?? 3),
+            score: Number(r.riskScore ?? (Number(r.probability ?? 3) * Number(r.impact ?? 3))),
+            status: (String(r.status) === 'mitigated' ? 'mitigated' : 'open') as 'open' | 'mitigated',
+            owner: String(r.owner ?? ''),
+          })));
+        }
+        if (controlsRes?.length) {
+          setControlData(controlsRes.map((c: Record<string, unknown>, i: number) => ({
+            id: `CTR-${String(i + 1).padStart(2, '0')}`,
+            name: String(c.title ?? ''),
+            status: String(c.status) === 'active' ? 'active' : 'inactive',
+          })));
+        }
       } catch { /* demo fallback */ }
     }
     loadData();
   }, []);
 
+  const activeCtrl = controlData.filter(c => c.status === 'active').length;
+  const openRisks = riskData.filter(r => r.status === 'open').length;
   const kpis = [
-    { label: 'סיכונים פתוחים', value: '5', icon: AlertTriangle, color: C.danger },
-    { label: 'אירועי הפסד (שנתי)', value: '3', icon: BarChart3, color: C.warning },
+    { label: 'סיכונים פתוחים', value: String(openRisks), icon: AlertTriangle, color: C.danger },
+    { label: 'אירועי הפסד (שנתי)', value: String(lossEvents.length), icon: BarChart3, color: C.warning },
     { label: 'סה"כ הפסדים', value: '₪245K', icon: BarChart3, color: C.danger },
-    { label: 'בקרות פעילות', value: '12/15', icon: CheckCircle, color: C.success },
+    { label: 'בקרות פעילות', value: `${activeCtrl}/${controlData.length}`, icon: CheckCircle, color: C.success },
   ];
 
   return (
@@ -156,7 +182,7 @@ export default function OperationalRiskPage() {
               </tr>
             </thead>
             <tbody>
-              {risks.map((risk) => (
+              {riskData.map((risk) => (
                 <tr key={risk.id} style={{ borderBottom: `1px solid ${C.borderLight}` }}>
                   <td style={{ padding: '12px', fontFamily: 'var(--font-rubik)', fontWeight: 600, color: C.accent }}>
                     {risk.id}
@@ -251,12 +277,12 @@ export default function OperationalRiskPage() {
             marginRight: 'auto', fontSize: 13, fontWeight: 600, color: C.success,
             background: C.successBg, padding: '2px 10px', borderRadius: 20,
           }}>
-            12/15 פעילות
+            {activeCtrl}/{controlData.length} פעילות
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {controls.map((ctrl) => (
+          {controlData.map((ctrl) => (
             <div key={ctrl.id} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               borderRadius: 8, border: `1px solid ${C.borderLight}`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { getRecentActivity } from '@/app/actions/dashboard';
+import { getLossEvents } from '@/app/actions/risks';
 import { C } from '@/shared/lib/design-tokens';
 import { useState, useEffect } from 'react';
 import { FileWarning, TrendingUp, AlertTriangle, Clock, BookOpen, ExternalLink, Crown } from 'lucide-react';
@@ -41,11 +41,25 @@ function getStatusBg(status: EventStatus) {
 }
 
 export default function EventReportingPage() {
+  const [eventData, setEventData] = useState<LossEvent[]>(events);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const activityRes = await getRecentActivity(50);
-        if (activityRes?.length) console.log('[EventReporting] DB data loaded', { events: activityRes.length });
+        const lossRes = await getLossEvents();
+        if (lossRes?.length) {
+          setEventData(lossRes.map((le: Record<string, unknown>, i: number) => {
+            const amt = Number(le.amountNis ?? 0);
+            return {
+              id: `EVT-${String(i + 1).padStart(3, '0')}`,
+              title: String(le.title ?? ''),
+              amount: amt > 0 ? `₪${amt >= 1000 ? Math.round(amt / 1000) + 'K' : amt.toLocaleString()}` : '₪0',
+              date: le.eventDate ? new Date(le.eventDate as string).toLocaleDateString('he-IL') : '—',
+              status: (le.correctiveActions ? 'סגור' : 'פתוח') as EventStatus,
+              category: String(le.category ?? 'תפעולי'),
+            };
+          }));
+        }
       } catch { /* demo fallback */ }
     }
     loadData();
@@ -53,12 +67,13 @@ export default function EventReportingPage() {
 
   const [filter, setFilter] = useState<'all' | EventStatus>('all');
 
-  const filteredEvents = filter === 'all' ? events : events.filter((e) => e.status === filter);
+  const filteredEvents = filter === 'all' ? eventData : eventData.filter((e) => e.status === filter);
 
+  const openEvents = eventData.filter(e => e.status === 'פתוח').length;
   const kpis = [
-    { label: 'סה"כ אירועים', value: '8', icon: FileWarning, color: C.accent },
+    { label: 'סה"כ אירועים', value: String(eventData.length), icon: FileWarning, color: C.accent },
     { label: 'סה"כ הפסדים', value: '₪412K', icon: TrendingUp, color: C.danger },
-    { label: 'אירועים פתוחים', value: '3', icon: AlertTriangle, color: C.warning },
+    { label: 'אירועים פתוחים', value: String(openEvents), icon: AlertTriangle, color: C.warning },
     { label: 'זמן טיפול ממוצע', value: '4.2 ימים', icon: Clock, color: C.accentTeal },
   ];
 

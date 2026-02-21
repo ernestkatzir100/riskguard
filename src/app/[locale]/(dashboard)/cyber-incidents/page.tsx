@@ -100,16 +100,18 @@ export default function CyberIncidentsPage() {
     try {
       const result = await getCyberIncidents();
       if (result && Array.isArray(result) && result.length > 0) {
+        const sevMap: Record<string, Incident['severity']> = { critical: 'גבוה', high: 'גבוה', medium: 'בינוני', low: 'נמוך' };
+        const statusMap: Record<string, Incident['status']> = { resolved: 'סגור', closed: 'סגור', detected: 'פתוח', investigating: 'פתוח', contained: 'פתוח' };
         const mapped: Incident[] = result.map((inc: Record<string, unknown>) => ({
-          id: String(inc.id ?? ''),
+          id: String(inc.id ?? '').slice(0, 8),
           type: String(inc.type ?? ''),
-          date: String(inc.date ?? ''),
-          severity: (inc.severity as Incident['severity']) ?? 'נמוך',
-          status: (inc.status as Incident['status']) ?? 'פתוח',
-          owner: String(inc.owner ?? ''),
+          date: inc.detectedAt ? new Date(inc.detectedAt as string).toLocaleDateString('he-IL') : String(inc.date ?? ''),
+          severity: sevMap[String(inc.severity)] ?? 'נמוך',
+          status: statusMap[String(inc.status)] ?? 'פתוח',
+          owner: String(inc.createdBy ?? inc.owner ?? ''),
           description: String(inc.description ?? ''),
           timeline: Array.isArray(inc.timeline) ? inc.timeline : [],
-          resolution: inc.resolution ? String(inc.resolution) : undefined,
+          resolution: inc.rootCause ? String(inc.rootCause) : inc.resolution ? String(inc.resolution) : undefined,
         }));
         setIncidents(mapped);
       }

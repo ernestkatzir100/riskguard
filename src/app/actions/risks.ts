@@ -1,6 +1,6 @@
 'use server';
 import { db } from '@/db';
-import { risks, controls, riskControls } from '@/db/schema';
+import { risks, controls, riskControls, lossEvents } from '@/db/schema';
 import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createRiskSchema, updateRiskSchema } from '@/shared/lib/validators';
@@ -55,6 +55,11 @@ export async function deleteRisk(id: string) {
   await db.delete(riskControls).where(eq(riskControls.riskId, id));
   await db.delete(risks).where(and(eq(risks.id, id), eq(risks.tenantId, user.tenant_id)));
   await logAction({ action: 'risk.deleted', entity_type: 'risk', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
+}
+
+export async function getLossEvents() {
+  const user = await getCurrentUserOrDemo();
+  return db.select().from(lossEvents).where(eq(lossEvents.tenantId, user.tenant_id)).orderBy(desc(lossEvents.eventDate));
 }
 
 export async function getRiskHeatMap() {

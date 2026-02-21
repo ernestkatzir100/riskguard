@@ -187,7 +187,23 @@ export default function DocumentsPage() {
   const loadData = useCallback(async () => {
     try {
       const result = await getDocuments();
-      if (result && result.length > 0) setDocs(result as unknown as Doc[]);
+      if (result && result.length > 0) {
+        const statusMap: Record<string, DocStatus> = {
+          draft: 'draft', approved: 'approved', expired: 'missing',
+          pending_approval: 'review',
+        };
+        const mapped: Doc[] = result.map((d: Record<string, unknown>) => ({
+          id: String(d.id ?? ''),
+          title: String(d.title ?? ''),
+          type: (['policy','procedure','report','protocol'].includes(String(d.type)) ? String(d.type) : 'report') as DocType,
+          module: String(d.module ?? 'governance'),
+          status: statusMap[String(d.status)] ?? 'draft',
+          date: d.updatedAt ? new Date(d.updatedAt as string).toLocaleDateString('he-IL') : '—',
+          version: String(d.version ?? '1.0'),
+          owner: String(d.createdBy ?? 'מערכת'),
+        }));
+        setDocs(mapped);
+      }
     } catch {
       /* fallback to demo */
     } finally {

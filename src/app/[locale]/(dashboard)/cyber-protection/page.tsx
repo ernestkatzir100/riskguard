@@ -119,6 +119,9 @@ type TabId = 'controls' | 'vulnerabilities' | 'pentest';
 
 export default function CyberProtectionPage() {
   const [activeTab, setActiveTab] = useState<TabId>('controls');
+  const [controls, setControls] = useState<Control[]>(CONTROLS);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>(VULNERABILITIES);
+  const [pentestFindings, setPentestFindings] = useState<PenTestFinding[]>(PENTEST_FINDINGS);
 
   useEffect(() => {
     async function loadData() {
@@ -128,16 +131,52 @@ export default function CyberProtectionPage() {
           getPenTests(),
           getVulnScans(),
         ]);
-        if (controlsRes?.length) console.log('[CyberProtection] DB data loaded', { controls: controlsRes.length, penTests: penTestRes?.length, vulns: vulnRes?.length });
+        if (controlsRes?.length) {
+          const statusMap: Record<string, ControlStatus> = { active: 'active', partial: 'partial', inactive: 'inactive' };
+          setControls(controlsRes.map((c: Record<string, unknown>, i: number) => ({
+            id: `CPR-${String(i + 1).padStart(2, '0')}`,
+            name: String(c.title ?? c.name ?? ''),
+            status: statusMap[String(c.status)] ?? 'active',
+            effectiveness: Number(c.effectivenessScore ?? 3) * 20,
+            lastCheck: c.lastReviewDate ? new Date(c.lastReviewDate as string).toLocaleDateString('he-IL', { month: '2-digit', year: 'numeric' }) : '—',
+          })));
+        }
+        if (penTestRes?.length) {
+          const findings: PenTestFinding[] = penTestRes.flatMap((pt: Record<string, unknown>, idx: number) => {
+            const results: PenTestFinding[] = [];
+            const critical = Number(pt.criticalFindings ?? 0);
+            const high = Number(pt.highFindings ?? 0);
+            const medium = Number(pt.mediumFindings ?? 0);
+            if (critical > 0) results.push({ id: `PT-${idx + 1}C`, title: `ממצאים קריטיים — ${String(pt.vendor ?? 'Pen Test')}`, severity: 'high', status: 'open' });
+            if (high > 0) results.push({ id: `PT-${idx + 1}H`, title: `ממצאים גבוהים — ${String(pt.vendor ?? 'Pen Test')}`, severity: 'high', status: 'open' });
+            if (medium > 0) results.push({ id: `PT-${idx + 1}M`, title: `ממצאים בינוניים — ${String(pt.vendor ?? 'Pen Test')}`, severity: 'medium', status: 'closed' });
+            return results;
+          });
+          if (findings.length) setPentestFindings(findings);
+        }
+        if (vulnRes?.length) {
+          const vulns: Vulnerability[] = vulnRes.flatMap((scan: Record<string, unknown>, idx: number) => {
+            const results: Vulnerability[] = [];
+            const high = Number(scan.highCount ?? 0);
+            const med = Number(scan.mediumCount ?? 0);
+            const low = Number(scan.lowCount ?? 0);
+            const date = scan.scanDate ? new Date(scan.scanDate as string).toLocaleDateString('he-IL') : '—';
+            if (high > 0) results.push({ id: `VUL-${idx + 1}H`, title: `${high} פגיעויות גבוהות — ${String(scan.tool ?? 'סריקה')}`, severity: 'high', discovered: date, owner: 'IT' });
+            if (med > 0) results.push({ id: `VUL-${idx + 1}M`, title: `${med} פגיעויות בינוניות — ${String(scan.tool ?? 'סריקה')}`, severity: 'medium', discovered: date, owner: 'IT' });
+            if (low > 0) results.push({ id: `VUL-${idx + 1}L`, title: `${low} פגיעויות נמוכות — ${String(scan.tool ?? 'סריקה')}`, severity: 'low', discovered: date, owner: 'IT' });
+            return results;
+          });
+          if (vulns.length) setVulnerabilities(vulns);
+        }
       } catch { /* demo fallback */ }
     }
     loadData();
   }, []);
 
-  const activeControls = CONTROLS.filter(c => c.status === 'active').length;
-  const totalControls = 30;
-  const openVulns = VULNERABILITIES.length;
-  const complianceScore = 68;
+  const activeControls = controls.filter(c => c.status === 'active').length;
+  const totalControls = controls.length;
+  const openVulns = vulnerabilities.length;
+  const complianceScore = totalControls > 0 ? Math.round((activeControls / totalControls) * 100) : 68;
 
   return (
     <div style={{ direction: 'rtl' }}>
@@ -217,10 +256,10 @@ export default function CyberProtectionPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Shield size={14} color={C.accent} /> בקרות סייבר ({CONTROLS.length}/{totalControls})
+                <Shield size={14} color={C.accent} /> בקרות סייבר ({controls.length}/{totalControls})
               </span>
               <span style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>
-                מציג 30 מתוך 30 בקרות
+                מציג {controls.length} מתוך {totalControls} בקרות
               </span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--font-assistant)' }}>
@@ -235,7 +274,7 @@ export default function CyberProtectionPage() {
                 </tr>
               </thead>
               <tbody>
-                {CONTROLS.map((ctrl, i) => {
+                {controls.map((ctrl, i) => {
                   const s = STATUS_MAP[ctrl.status];
                   const ec = effectivenessColor(ctrl.effectiveness);
                   const eb = effectivenessBg(ctrl.effectiveness);
@@ -327,7 +366,7 @@ export default function CyberProtectionPage() {
 
           {/* Vulnerability cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-            {VULNERABILITIES.map(vuln => {
+            {vulnerabilities.map(vuln => {
               const sev = SEVERITY_MAP[vuln.severity];
               return (
                 <div key={vuln.id} style={{
@@ -409,15 +448,15 @@ export default function CyberProtectionPage() {
               fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)',
               margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <AlertTriangle size={14} color={C.danger} /> ממצאים ({PENTEST_FINDINGS.length})
+              <AlertTriangle size={14} color={C.danger} /> ממצאים ({pentestFindings.length})
             </h3>
-            {PENTEST_FINDINGS.map((f, i) => {
+            {pentestFindings.map((f, i) => {
               const sev = SEVERITY_MAP[f.severity];
               const isOpen = f.status === 'open';
               return (
                 <div key={f.id} style={{
                   padding: '12px 0',
-                  borderBottom: i < PENTEST_FINDINGS.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                  borderBottom: i < pentestFindings.length - 1 ? `1px solid ${C.borderLight}` : 'none',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

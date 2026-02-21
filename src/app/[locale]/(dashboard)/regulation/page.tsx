@@ -146,14 +146,37 @@ export default function RegulationPage() {
   const [searchQ, setSearchQ] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'met' | 'partial' | 'not_met'>('all');
 
+  const [regTree, setRegTree] = useState<Regulation[]>(REG_TREE);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const [regsRes, statusRes] = await Promise.all([
+        const [, statusRes] = await Promise.all([
           getRegulations(),
           getComplianceStatus(),
         ]);
-        if (regsRes?.length) console.log('[Regulation] DB data loaded', { regulations: regsRes.length, status: statusRes });
+        if (statusRes && Array.isArray(statusRes) && statusRes.length > 0) {
+          const statusMap: Record<string, 'met' | 'partial' | 'not_met'> = {};
+          for (const s of statusRes) {
+            const rec = s as Record<string, unknown>;
+            if (rec.requirementId && rec.status) {
+              const st = String(rec.status);
+              statusMap[String(rec.requirementId)] = st === 'compliant' ? 'met' : st === 'partial' ? 'partial' : 'not_met';
+            }
+          }
+          if (Object.keys(statusMap).length > 0) {
+            setRegTree(prev => prev.map(reg => ({
+              ...reg,
+              sections: reg.sections.map(sec => ({
+                ...sec,
+                reqs: sec.reqs.map(req => ({
+                  ...req,
+                  status: statusMap[req.reqId] ?? req.status,
+                })),
+              })),
+            })));
+          }
+        }
       } catch { /* demo fallback */ }
     }
     loadData();
@@ -162,7 +185,7 @@ export default function RegulationPage() {
   const toggleReg = (id: string) => setExpandedRegs(p => ({ ...p, [id]: !p[id] }));
   const toggleSection = (id: string) => setExpandedSections(p => ({ ...p, [id]: !p[id] }));
 
-  const allReqs = REG_TREE.flatMap(r => r.sections.flatMap(s => s.reqs));
+  const allReqs = regTree.flatMap(r => r.sections.flatMap(s => s.reqs));
   const stats = { met: allReqs.filter(r => r.status === 'met').length, partial: allReqs.filter(r => r.status === 'partial').length, not_met: allReqs.filter(r => r.status === 'not_met').length };
   const totalPct = Math.round((stats.met / allReqs.length) * 100);
 
@@ -214,7 +237,7 @@ export default function RegulationPage() {
       <div style={{ display: 'flex', gap: 0 }}>
         {/* Tree */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {REG_TREE.map(reg => {
+          {regTree.map(reg => {
             const regReqs = reg.sections.flatMap(s => s.reqs);
             const regMet = regReqs.filter(r => r.status === 'met').length;
             const regPct = Math.round((regMet / regReqs.length) * 100);

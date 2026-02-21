@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 
 import { getComplianceStatus } from '@/app/actions/compliance';
+import { getRiskOfficer } from '@/app/actions/settings';
+import { getDocuments } from '@/app/actions/documents';
 import { C } from '@/shared/lib/design-tokens';
 import { ScoreRing } from '@/shared/components/score-ring';
 
@@ -83,11 +85,42 @@ const POLICY_STATUS = {
    RiskGovernancePage
    ═══════════════════════════════════════════════ */
 export default function RiskGovernancePage() {
+  const [policies, setPolicies] = useState<Policy[]>(POLICIES);
+  const [officer, setOfficer] = useState(OFFICER);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const statusRes = await getComplianceStatus();
-        if (statusRes) console.log('[RiskGovernance] DB data loaded', statusRes);
+        const [statusRes, officerRes, docsRes] = await Promise.all([
+          getComplianceStatus(),
+          getRiskOfficer(),
+          getDocuments({ type: 'policy' }),
+        ]);
+        if (officerRes) {
+          const o = officerRes as Record<string, unknown>;
+          setOfficer({
+            name: String(o.fullName ?? OFFICER.name),
+            role: 'מנהל סיכונים',
+            phone: String(o.phone ?? OFFICER.phone),
+            email: String(o.email ?? OFFICER.email),
+            appointmentLetter: !!o.appointmentDate,
+            reportingTo: String(o.reportingLine ?? OFFICER.reportingTo),
+            certifications: Array.isArray(o.certifications) ? o.certifications as string[] : OFFICER.certifications,
+          });
+        }
+        if (docsRes?.length) {
+          const statusMap: Record<string, Policy['status']> = { approved: 'approved', draft: 'draft', expired: 'expired', pending_approval: 'draft' };
+          setPolicies(docsRes.map((d: Record<string, unknown>, i: number) => ({
+            id: `POL-${String(i + 1).padStart(2, '0')}`,
+            name: String(d.title ?? ''),
+            status: statusMap[String(d.status)] ?? 'draft',
+            version: String(d.version ?? '1.0'),
+            boardApproval: d.updatedAt ? new Date(d.updatedAt as string).toLocaleDateString('he-IL') : '—',
+            expiry: '—',
+            history: [],
+          })));
+        }
+        void statusRes;
       } catch { /* demo fallback */ }
     }
     loadData();
@@ -181,7 +214,7 @@ export default function RiskGovernancePage() {
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: 0 }}>ניהול מדיניות</h2>
           </div>
 
-          {POLICIES.map(policy => {
+          {policies.map(policy => {
             const st = POLICY_STATUS[policy.status];
             const isExpanded = expandedPolicy === policy.id;
 
@@ -263,8 +296,8 @@ export default function RiskGovernancePage() {
                 <User size={22} color={C.accent} />
               </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>{OFFICER.name}</div>
-                <div style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{OFFICER.role}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)' }}>{officer.name}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>{officer.role}</div>
               </div>
             </div>
 
@@ -274,13 +307,13 @@ export default function RiskGovernancePage() {
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: C.borderLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Phone size={13} color={C.textMuted} />
                 </div>
-                <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)', direction: 'ltr', unicodeBidi: 'embed' }}>{OFFICER.phone}</span>
+                <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)', direction: 'ltr', unicodeBidi: 'embed' }}>{officer.phone}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: C.borderLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Mail size={13} color={C.textMuted} />
                 </div>
-                <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)', direction: 'ltr', unicodeBidi: 'embed' }}>{OFFICER.email}</span>
+                <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)', direction: 'ltr', unicodeBidi: 'embed' }}>{officer.email}</span>
               </div>
             </div>
 
@@ -295,14 +328,14 @@ export default function RiskGovernancePage() {
               {/* Reporting Line */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.borderLight, borderRadius: 8, padding: '10px 14px' }}>
                 <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>קו דיווח</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{OFFICER.reportingTo}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{officer.reportingTo}</span>
               </div>
 
               {/* Certifications */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.borderLight, borderRadius: 8, padding: '10px 14px' }}>
                 <span style={{ fontSize: 12, color: C.textSec, fontFamily: 'var(--font-assistant)' }}>הסמכות</span>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {OFFICER.certifications.map(cert => (
+                  {officer.certifications.map(cert => (
                     <span key={cert} style={{ background: C.accentLight, color: C.accent, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 3 }}>
                       <Award size={10} /> {cert}
                     </span>

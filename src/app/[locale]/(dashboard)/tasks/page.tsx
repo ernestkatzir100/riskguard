@@ -147,7 +147,18 @@ export default function TasksPage() {
   const loadData = useCallback(async () => {
     try {
       const result = await getTasks();
-      if (result && result.length > 0) setTasks(result as unknown as Task[]);
+      if (result && result.length > 0) {
+        const mapped: Task[] = result.map((t: Record<string, unknown>) => ({
+          id: String(t.id ?? ''),
+          title: String(t.title ?? ''),
+          module: String(t.module ?? 'governance'),
+          dueDate: t.dueDate ? new Date(t.dueDate as string).toLocaleDateString('he-IL') : '—',
+          status: String(t.status ?? 'pending') as TaskStatus,
+          assignedTo: String(t.assignedTo ?? 'לא שויך'),
+          priority: String(t.priority ?? 'medium') as TaskPriority,
+        }));
+        setTasks(mapped);
+      }
     } catch {
       /* fallback to demo */
     } finally {
