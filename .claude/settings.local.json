@@ -18,7 +18,17 @@
       "Bash(railway list:*)",
       "Bash(railway variables:*)",
       "Bash(railway domain:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(railway logs:*)",
+      "Bash(nslookup:*)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx drizzle-kit push:*)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=verbatim\" npx drizzle-kit push:*)",
+      "Bash(node -e \"const dns = require\\(''dns''\\); dns.resolve4\\(''db.velgrptvwwxznbrzjelh.supabase.co'', \\(err, a\\) => console.log\\(''A:'', err||a\\)\\); dns.resolve6\\(''db.velgrptvwwxznbrzjelh.supabase.co'', \\(err, a\\) => console.log\\(''AAAA:'', err||a\\)\\); dns.lookup\\(''db.velgrptvwwxznbrzjelh.supabase.co'', \\(err, a\\) => console.log\\(''lookup:'', err||a\\)\\);\")",
+      "Bash(python3:*)",
+      "Bash(node -e \"let d='''';process.stdin.on\\(''data'',c=>d+=c\\);process.stdin.on\\(''end'',\\(\\)=>{const o=JSON.parse\\(d\\);Object.keys\\(o\\).sort\\(\\).filter\\(k=>!k.startsWith\\(''RAILWAY''\\)\\).forEach\\(k=>console.log\\(k+''=''+o[k]\\)\\)}\\)\")",
+      "Bash(node -e \"let d='''';process.stdin.on\\(''data'',c=>d+=c\\);process.stdin.on\\(''end'',\\(\\)=>{const o=JSON.parse\\(d\\);for\\(const k of Object.keys\\(o\\).sort\\(\\)\\){if\\(k.startsWith\\(''RAILWAY''\\)\\)continue;console.log\\(k+''=''+o[k]\\)}}\\)\")"
     ]
   }
 }
