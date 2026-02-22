@@ -37,6 +37,7 @@ export type CurrentUser = {
   email: string;
   full_name: string;
   role: 'admin' | 'risk_manager' | 'viewer' | 'auditor';
+  is_super_admin: boolean;
 };
 
 /**
@@ -73,6 +74,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     email: dbUser.email,
     full_name: dbUser.fullName,
     role: dbUser.role,
+    is_super_admin: dbUser.isSuperAdmin,
   };
 }
 
@@ -86,6 +88,7 @@ export const DEMO_USER: CurrentUser = {
   email: 'demo@riskguard.co.il',
   full_name: 'דוד כהן',
   role: 'admin',
+  is_super_admin: false,
 };
 
 /**

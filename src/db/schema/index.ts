@@ -137,6 +137,7 @@ export const users = pgTable('users', {
   phone: varchar('phone', { length: 30 }),
   jobTitle: varchar('job_title', { length: 255 }),
   lastLogin: timestamp('last_login'),
+  isSuperAdmin: boolean('is_super_admin').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   tenantIdx: index('users_tenant_idx').on(t.tenantId),
@@ -646,4 +647,33 @@ export const kris = pgTable('kris', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => ({
   tenantIdx: index('kris_tenant_idx').on(t.tenantId),
+}));
+
+// ═══════════════════════════════════════════════
+// 5.11 NuTeLa AGENT PUSHES (Super Admin)
+// ═══════════════════════════════════════════════
+
+export const nutelaPushTypeEnum = pgEnum('nutela_push_type', [
+  'task', 'questionnaire',
+]);
+
+export const nutelaPushStatusEnum = pgEnum('nutela_push_status', [
+  'pending', 'sent', 'answered', 'overdue',
+]);
+
+export const nutelaPushes = pgTable('nutela_pushes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  type: nutelaPushTypeEnum('type').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  status: nutelaPushStatusEnum('status').notNull().default('pending'),
+  schedule: varchar('schedule', { length: 20 }), // null (one-time) | 'weekly' | 'monthly'
+  generatedBy: varchar('generated_by', { length: 50 }), // 'manual' | 'nutela_ai'
+  pushedBy: uuid('pushed_by').references(() => users.id),
+  respondedAt: timestamp('responded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  tenantIdx: index('np_tenant_idx').on(t.tenantId),
+  statusIdx: index('np_status_idx').on(t.status),
 }));
