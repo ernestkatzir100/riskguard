@@ -1,8 +1,25 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { GripVertical, ChevronUp, ChevronDown, Eye, EyeOff, X, Settings2 } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, X, Settings2 } from 'lucide-react';
 import { C } from '@/shared/lib/design-tokens';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 export type WidgetDef = { id: string; label: string };
 
@@ -15,7 +32,6 @@ function loadState(widgets: WidgetDef[]): WidgetState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as WidgetState;
-      // Ensure all widget ids are present
       const allIds = widgets.map(w => w.id);
       const order = parsed.order.filter(id => allIds.includes(id));
       const missing = allIds.filter(id => !order.includes(id));
@@ -44,6 +60,35 @@ export function useWidgetOrder(widgets: WidgetDef[]) {
   return { state, setOrder, visibleOrder };
 }
 
+/* ─── Sortable Item ─── */
+function SortableItem({ id, label, isHidden, onToggle }: { id: string; label: string; isHidden: boolean; onToggle: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    display: 'flex', alignItems: 'center' as const, gap: 8, padding: '8px 10px',
+    background: isHidden ? C.borderLight : 'white', borderRadius: 8, marginBottom: 4,
+    border: `1px solid ${C.borderLight}`, opacity: isHidden ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div {...attributes} {...listeners} style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+        <GripVertical size={14} color={C.textMuted} />
+      </div>
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.text, fontFamily: 'var(--font-rubik)' }}>
+        {label}
+      </span>
+      <button onClick={onToggle} title={isHidden ? 'הצג' : 'הסתר'}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        {isHidden ? <EyeOff size={14} color={C.textMuted} /> : <Eye size={14} color={C.accent} />}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Modal ─── */
 type Props = {
   widgets: WidgetDef[];
   state: WidgetState;
@@ -55,13 +100,21 @@ export function WidgetOrderModal({ widgets, state, onSave, onClose }: Props) {
   const [order, setOrder] = useState(state.order);
   const [hidden, setHidden] = useState(state.hidden);
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const newOrder = [...order];
-    const target = idx + dir;
-    if (target < 0 || target >= newOrder.length) return;
-    [newOrder[idx], newOrder[target]] = [newOrder[target], newOrder[idx]];
-    setOrder(newOrder);
-  };
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrder(prev => {
+        const oldIdx = prev.indexOf(active.id as string);
+        const newIdx = prev.indexOf(over.id as string);
+        return arrayMove(prev, oldIdx, newIdx);
+      });
+    }
+  }
 
   const toggle = (id: string) => {
     setHidden(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -80,37 +133,29 @@ export function WidgetOrderModal({ widgets, state, onSave, onClose }: Props) {
           </button>
         </div>
 
-        <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-          {order.map((id, idx) => {
-            const w = widgets.find(x => x.id === id);
-            if (!w) return null;
-            const isHidden = hidden.includes(id);
-            return (
-              <div key={id} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                background: isHidden ? C.borderLight : 'white', borderRadius: 8, marginBottom: 4,
-                border: `1px solid ${C.borderLight}`, opacity: isHidden ? 0.5 : 1,
-              }}>
-                <GripVertical size={14} color={C.textMuted} />
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.text, fontFamily: 'var(--font-rubik)' }}>
-                  {w.label}
-                </span>
-                <button onClick={() => toggle(id)} title={isHidden ? 'הצג' : 'הסתר'}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  {isHidden ? <EyeOff size={14} color={C.textMuted} /> : <Eye size={14} color={C.accent} />}
-                </button>
-                <button onClick={() => move(idx, -1)} disabled={idx === 0}
-                  style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer', padding: 2, opacity: idx === 0 ? 0.3 : 1 }}>
-                  <ChevronUp size={14} color={C.textSec} />
-                </button>
-                <button onClick={() => move(idx, 1)} disabled={idx === order.length - 1}
-                  style={{ background: 'none', border: 'none', cursor: idx === order.length - 1 ? 'not-allowed' : 'pointer', padding: 2, opacity: idx === order.length - 1 ? 0.3 : 1 }}>
-                  <ChevronDown size={14} color={C.textSec} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <p style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: '0 0 10px' }}>
+          גרור כדי לשנות סדר · לחץ על העין להסתרה/הצגה
+        </p>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={order} strategy={verticalListSortingStrategy}>
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+              {order.map((id) => {
+                const w = widgets.find(x => x.id === id);
+                if (!w) return null;
+                return (
+                  <SortableItem
+                    key={id}
+                    id={id}
+                    label={w.label}
+                    isHidden={hidden.includes(id)}
+                    onToggle={() => toggle(id)}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
           <button onClick={() => { onSave({ order, hidden }); onClose(); }}

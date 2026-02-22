@@ -7,11 +7,11 @@ const BRAND_HEADER = `<div style="background: linear-gradient(135deg, #1D6FAB, #
   <h1 style="color: white; font-family: Rubik, sans-serif; font-size: 20px; margin: 0;">RiskGuard</h1>
 </div>`;
 
-const WRAPPER = (content: string) => `<div dir="rtl" style="font-family: Assistant, Rubik, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #CBD5E1; border-radius: 12px; overflow: hidden;">
+const WRAPPER = (content: string, companyName?: string) => `<div dir="rtl" style="font-family: Assistant, Rubik, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #B8C4D1; border-radius: 12px; overflow: hidden;">
   ${BRAND_HEADER}
   <div style="padding: 24px; background: white;">${content}</div>
-  <div style="padding: 12px 24px; background: #F5F7FA; font-size: 11px; color: #64748B; text-align: center;">
-    RiskGuard \u2014 \u05E0\u05D9\u05D4\u05D5\u05DC \u05E1\u05D9\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05DB\u05DD
+  <div style="padding: 12px 24px; background: #EDF0F5; font-size: 11px; color: #576B82; text-align: center;">
+    ${companyName ? `${companyName} — ` : ''}RiskGuard \u2014 \u05E0\u05D9\u05D4\u05D5\u05DC \u05E1\u05D9\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05DB\u05DD
   </div>
 </div>`;
 

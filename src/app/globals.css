@@ -5,31 +5,31 @@
   /* ═══ RiskGuard Design System — vivid light palette ═══ */
 
   /* Navigation */
-  --color-nav-bg: #1A2740;
-  --color-nav-hover: #253854;
+  --color-nav-bg: #0F1B2D;
+  --color-nav-hover: #1A2B45;
 
-  /* Core palette */
-  --color-accent: #1D6FAB;
-  --color-accent-teal: #0E9AAA;
-  --color-accent-light: #E0F2FE;
-  --color-accent-dark: #155A8A;
+  /* Core palette — deeper, richer blues */
+  --color-accent: #1360A6;
+  --color-accent-teal: #0B8A99;
+  --color-accent-light: #D4ECFD;
+  --color-accent-dark: #0E4D80;
 
-  /* Semantic */
-  --color-success: #16A34A;
-  --color-success-bg: #DCFCE7;
-  --color-warning: #D97706;
-  --color-warning-bg: #FEF3C7;
-  --color-danger: #DC2626;
-  --color-danger-bg: #FEE2E2;
+  /* Semantic — vivid */
+  --color-success: #0D9440;
+  --color-success-bg: #CBFADE;
+  --color-warning: #C36A00;
+  --color-warning-bg: #FEECB3;
+  --color-danger: #C81E1E;
+  --color-danger-bg: #FDD8D8;
 
-  /* Surfaces & text */
-  --color-bg: #F5F7FA;
+  /* Surfaces & text — richer contrast */
+  --color-bg: #EDF0F5;
   --color-surface: #FFFFFF;
-  --color-border: #CBD5E1;
-  --color-border-light: #E2E8F0;
-  --color-text: #0F172A;
-  --color-text-sec: #475569;
-  --color-text-muted: #64748B;
+  --color-border: #B8C4D1;
+  --color-border-light: #D5DDE8;
+  --color-text: #0B1120;
+  --color-text-sec: #3B4A5E;
+  --color-text-muted: #576B82;
 }
 
 :root {

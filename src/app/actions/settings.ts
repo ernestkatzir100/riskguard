@@ -8,6 +8,11 @@ import { canManageUsers } from '@/shared/lib/permissions';
 import { updateTenantSchema, onboardingSchema, updateRiskOfficerSchema } from '@/shared/lib/validators';
 import { eq, and } from 'drizzle-orm';
 
+export async function getCurrentRole() {
+  const user = await getCurrentUserOrDemo();
+  return user.role;
+}
+
 export async function getTenant() {
   const user = await getCurrentUserOrDemo();
   const [tenant] = await db.select().from(tenants)
@@ -215,8 +220,8 @@ export async function inviteUser(email: string, role: string) {
 
 export async function updateUserRole(targetUserId: string, newRole: CurrentUser['role']) {
   const user = await getCurrentUserOrDemo();
-  if (!canManageUsers(user.role)) throw new Error('Unauthorized: only admins can change roles');
-  if (targetUserId === user.id) throw new Error('Cannot change your own role');
+  if (!canManageUsers(user.role)) throw new Error('אינך מורשה: רק מנהלי מערכת יכולים לשנות תפקידים');
+  if (targetUserId === user.id) throw new Error('לא ניתן לשנות את התפקיד שלך');
 
   const [updated] = await db.update(users)
     .set({ role: newRole })
@@ -237,8 +242,8 @@ export async function updateUserRole(targetUserId: string, newRole: CurrentUser[
 
 export async function removeUser(targetUserId: string) {
   const user = await getCurrentUserOrDemo();
-  if (!canManageUsers(user.role)) throw new Error('Unauthorized: only admins can remove users');
-  if (targetUserId === user.id) throw new Error('Cannot remove yourself');
+  if (!canManageUsers(user.role)) throw new Error('אינך מורשה: רק מנהלי מערכת יכולים להסיר משתמשים');
+  if (targetUserId === user.id) throw new Error('לא ניתן להסיר את עצמך');
 
   const [removed] = await db.delete(users)
     .where(and(eq(users.id, targetUserId), eq(users.tenantId, user.tenant_id)))

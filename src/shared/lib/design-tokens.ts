@@ -6,44 +6,44 @@
 
 export const C = {
   // Navigation
-  navBg: '#1A2740',
-  navHover: '#253854',
+  navBg: '#0F1B2D',
+  navHover: '#1A2B45',
 
-  // Core palette
-  accent: '#1D6FAB',
-  accentTeal: '#0E9AAA',
-  accentLight: '#E0F2FE',
-  accentDark: '#155A8A',
-  accentGrad: 'linear-gradient(135deg, #1D6FAB, #0E9AAA)',
+  // Core palette — deeper, richer blues
+  accent: '#1360A6',
+  accentTeal: '#0B8A99',
+  accentLight: '#D4ECFD',
+  accentDark: '#0E4D80',
+  accentGrad: 'linear-gradient(135deg, #1360A6, #0B8A99)',
 
-  // Semantic — success
-  success: '#16A34A',
-  successBg: '#DCFCE7',
+  // Semantic — success (vivid green)
+  success: '#0D9440',
+  successBg: '#CBFADE',
 
-  // Semantic — warning
-  warning: '#D97706',
-  warningBg: '#FEF3C7',
+  // Semantic — warning (vivid amber)
+  warning: '#C36A00',
+  warningBg: '#FEECB3',
 
-  // Semantic — danger
-  danger: '#DC2626',
-  dangerBg: '#FEE2E2',
+  // Semantic — danger (vivid red)
+  danger: '#C81E1E',
+  dangerBg: '#FDD8D8',
 
-  // Surfaces
-  bg: '#F5F7FA',
+  // Surfaces — slightly darker background for contrast
+  bg: '#EDF0F5',
   surface: '#FFFFFF',
 
-  // Text
-  text: '#0F172A',
-  textSec: '#475569',
-  textMuted: '#64748B',
+  // Text — closer to pure black
+  text: '#0B1120',
+  textSec: '#3B4A5E',
+  textMuted: '#576B82',
 
-  // Borders
-  border: '#CBD5E1',
-  borderLight: '#E2E8F0',
+  // Borders — slightly darker
+  border: '#B8C4D1',
+  borderLight: '#D5DDE8',
 
   // PRO tier
-  pro: '#7C3AED',
-  proBg: 'rgba(124,58,237,0.08)',
+  pro: '#6D28D9',
+  proBg: 'rgba(109,40,217,0.10)',
 } as const;
 
 export type DesignTokens = typeof C;

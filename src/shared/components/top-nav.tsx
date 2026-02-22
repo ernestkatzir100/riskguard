@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Shield, BarChart3, Handshake, ShieldCheck,
@@ -279,10 +280,12 @@ export function TopNav() {
         {/* Right side: Logo + company */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {branding.logoUrl ? (
-            <img
+            <Image
               src={branding.logoUrl}
               alt="לוגו"
-              style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }}
+              width={34}
+              height={34}
+              style={{ borderRadius: 8, objectFit: 'contain' }}
             />
           ) : (
             <div

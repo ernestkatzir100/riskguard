@@ -15,14 +15,16 @@ import {
   DollarSign,
   Plus,
   History,
+  Bell,
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getTenant, updateTenant, getUsers, inviteUser, updateUserRole, removeUser, updateBranding, getBranding } from '@/app/actions/settings';
+import { getTenant, updateTenant, getUsers, inviteUser, updateUserRole, removeUser, updateBranding, getBranding, getCurrentRole } from '@/app/actions/settings';
 import { getRecentActivity } from '@/app/actions/dashboard';
 import { ROLE_LABELS, ROLE_COLORS } from '@/shared/lib/permissions';
 import type { CurrentUser } from '@/shared/lib/auth';
 import { Upload, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 /* ═══ Audit Log — Hebrew labels ═══ */
 const ACTION_LABELS: Record<string, string> = {
@@ -526,10 +528,22 @@ export default function SettingsPage() {
     details: Record<string, unknown> | null; timestamp: Date | string; userId: string | null;
   }>>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [userRole, setUserRole] = useState<CurrentUser['role']>('viewer');
+  const [primaryContact, setPrimaryContact] = useState('');
+  const [notifPrefs, setNotifPrefs] = useState({
+    kri_breach: true,
+    task_overdue: true,
+    document_pending: true,
+    board_meeting: true,
+    report_ready: true,
+  });
+  const [notifSaving, setNotifSaving] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       try {
+        const role = await getCurrentRole();
+        setUserRole(role);
         const tenant = await getTenant();
         if (tenant) {
           setOrgFields([
@@ -553,6 +567,14 @@ export default function SettingsPage() {
         const brand = await getBranding();
         if (brand.logoUrl) setLogoPreview(brand.logoUrl);
         if (brand.brandColor) setBrandColor(brand.brandColor);
+        // Load settings from tenant
+        if (tenant?.settings && typeof tenant.settings === 'object') {
+          const s = tenant.settings as Record<string, unknown>;
+          if (s.notifPrefs && typeof s.notifPrefs === 'object') {
+            setNotifPrefs(prev => ({ ...prev, ...(s.notifPrefs as Record<string, boolean>) }));
+          }
+          if (s.primaryContact) setPrimaryContact(String(s.primaryContact));
+        }
       } catch {
         /* silent fallback to demo data */
       }
@@ -594,8 +616,11 @@ export default function SettingsPage() {
     setAuditLoading(false);
   }
 
+  const isAdmin = userRole === 'admin';
+
   const TABS = [
     { id: 'org', l: 'ארגון וצוות', Icon: Building2 },
+    { id: 'notifications', l: 'התראות', Icon: Bell },
     { id: 'billing', l: 'חבילות ומחירים', Icon: Receipt },
     { id: 'ntl', l: 'NTL Management', Icon: Sparkles },
     { id: 'audit', l: 'יומן פעולות', Icon: History },
@@ -663,7 +688,7 @@ export default function SettingsPage() {
                   background: C.borderLight, overflow: 'hidden', marginBottom: 8,
                 }}>
                   {logoPreview ? (
-                    <img src={logoPreview} alt="לוגו" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <Image src={logoPreview} alt="לוגו" width={80} height={80} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <Upload size={24} color={C.textMuted} />
                   )}
@@ -728,11 +753,28 @@ export default function SettingsPage() {
                     </button>
                   )}
                 </div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, fontFamily: 'var(--font-rubik)', display: 'block', marginBottom: 6 }}>
+                  איש קשר ראשי
+                </label>
+                <input
+                  type="text"
+                  value={primaryContact}
+                  onChange={(e) => setPrimaryContact(e.target.value)}
+                  placeholder="שם — טלפון — אימייל"
+                  style={{
+                    width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 6,
+                    fontSize: 12, fontFamily: 'var(--font-assistant)', outline: 'none', marginBottom: 12, boxSizing: 'border-box',
+                  }}
+                />
                 <button
                   onClick={async () => {
                     setBrandingSaving(true);
                     try {
                       await updateBranding({ logoUrl: logoPreview, brandColor: brandColor || null });
+                      // Save primary contact to tenant settings
+                      try {
+                        await updateTenant({ settings: { primaryContact } } as unknown as Record<string, unknown>);
+                      } catch { /* silent */ }
                       // Refresh branding cache
                       try { localStorage.setItem('rg-branding', JSON.stringify({ companyName: orgFields.find(f => f.l === 'שם חברה')?.v || '', logoUrl: logoPreview, brandColor: brandColor || null })); } catch { /* ignore */ }
                     } catch { /* silent */ }
@@ -809,12 +851,14 @@ export default function SettingsPage() {
               }}
             >
               <Users size={14} color={C.accent} /> צוות
-              <button
-                onClick={() => setShowInvite(!showInvite)}
-                style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5, marginRight: 'auto', marginLeft: 0 }}
-              >
-                <Plus size={14} /> הזמן משתמש
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowInvite(!showInvite)}
+                  style={{ background: C.accentGrad, color: 'white', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-rubik)', display: 'flex', alignItems: 'center', gap: 5, marginRight: 'auto', marginLeft: 0 }}
+                >
+                  <Plus size={14} /> הזמן משתמש
+                </button>
+              )}
             </h3>
             {showInvite && (
               <div style={{ background: C.borderLight, borderRadius: 8, padding: 12, marginBottom: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
@@ -858,33 +902,107 @@ export default function SettingsPage() {
                       {u.email}
                     </div>
                   </div>
-                  <select
-                    value={u.role}
-                    onChange={async (e) => {
-                      const newRole = e.target.value as CurrentUser['role'];
-                      setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: newRole } : m));
-                      try { await updateUserRole(u.id, newRole); } catch { setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: u.role } : m)); }
-                    }}
-                    style={{ padding: '4px 8px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-rubik)', background: rc.bg, color: rc.color, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
-                  >
-                    {(Object.entries(ROLE_LABELS) as [CurrentUser['role'], string][]).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={async () => {
-                      if (!confirm(`להסיר את ${u.name}?`)) return;
-                      setTeamMembers(prev => prev.filter(m => m.id !== u.id));
-                      try { await removeUser(u.id); } catch { setTeamMembers(prev => [...prev, u]); }
-                    }}
-                    title="הסר משתמש"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                  >
-                    <X size={14} color={C.textMuted} />
-                  </button>
+                  {isAdmin ? (
+                    <select
+                      value={u.role}
+                      onChange={async (e) => {
+                        const newRole = e.target.value as CurrentUser['role'];
+                        setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: newRole } : m));
+                        try { await updateUserRole(u.id, newRole); } catch { setTeamMembers(prev => prev.map(m => m.id === u.id ? { ...m, role: u.role } : m)); }
+                      }}
+                      style={{ padding: '4px 8px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-rubik)', background: rc.bg, color: rc.color, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                    >
+                      {(Object.entries(ROLE_LABELS) as [CurrentUser['role'], string][]).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span style={{ padding: '4px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-rubik)', background: rc.bg, color: rc.color, fontWeight: 600 }}>
+                      {ROLE_LABELS[u.role]}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`להסיר את ${u.name}?`)) return;
+                        setTeamMembers(prev => prev.filter(m => m.id !== u.id));
+                        try { await removeUser(u.id); } catch { setTeamMembers(prev => [...prev, u]); }
+                      }}
+                      title="הסר משתמש"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                    >
+                      <X size={14} color={C.textMuted} />
+                    </button>
+                  )}
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Tab: Notifications ═══ */}
+      {tab === 'notifications' && (
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: 'var(--font-rubik)', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Bell size={20} color={C.accent} /> הגדרות התראות
+            </h2>
+            <p style={{ fontSize: 12, color: C.textMuted, fontFamily: 'var(--font-assistant)', margin: 0 }}>
+              בחר אילו התראות דוא״ל לקבל
+            </p>
+          </div>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+            {([
+              { key: 'kri_breach', label: 'חריגת מדד סיכון (KRI)', desc: 'התראה כאשר מדד סיכון חורג מהסף המוגדר' },
+              { key: 'task_overdue', label: 'משימות באיחור', desc: 'התראה יומית על משימות שעברו את תאריך היעד' },
+              { key: 'document_pending', label: 'מסמכים ממתינים לאישור', desc: 'התראה כאשר מסמך ממתין לסקירה שלך' },
+              { key: 'board_meeting', label: 'תזכורת ישיבות', desc: 'תזכורת לפני ישיבות דירקטוריון' },
+              { key: 'report_ready', label: 'דוח מוכן', desc: 'התראה כאשר דוח הופק ומוכן לסקירה' },
+            ] as const).map((item) => (
+              <div key={item.key} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 0', borderBottom: `1px solid ${C.borderLight}`,
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'var(--font-assistant)', marginTop: 2 }}>{item.desc}</div>
+                </div>
+                <button
+                  onClick={() => setNotifPrefs(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                    background: notifPrefs[item.key] ? C.accent : C.borderLight,
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%', background: 'white',
+                    position: 'absolute', top: 3,
+                    right: notifPrefs[item.key] ? 3 : 'auto',
+                    left: notifPrefs[item.key] ? 'auto' : 3,
+                    transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={async () => {
+                setNotifSaving(true);
+                try {
+                  await updateTenant({ settings: { notifPrefs } } as unknown as Record<string, unknown>);
+                } catch { /* silent */ }
+                setNotifSaving(false);
+              }}
+              disabled={notifSaving}
+              style={{
+                marginTop: 16, background: notifSaving ? C.textMuted : C.accentGrad, color: 'white',
+                border: 'none', borderRadius: 8, padding: '8px 24px', fontSize: 12,
+                fontWeight: 600, cursor: notifSaving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-rubik)',
+              }}
+            >
+              {notifSaving ? 'שומר...' : 'שמור העדפות'}
+            </button>
           </div>
         </div>
       )}

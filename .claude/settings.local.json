@@ -6,7 +6,19 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(railway login:*)",
+      "Bash(railway init:*)",
+      "Bash(railway up:*)",
+      "Bash(railway variables set:*)",
+      "Bash(railway service:*)",
+      "Bash(railway status:*)",
+      "Bash(railway list:*)",
+      "Bash(railway variables:*)",
+      "Bash(railway domain:*)",
+      "Bash(grep:*)"
     ]
   }
 }
