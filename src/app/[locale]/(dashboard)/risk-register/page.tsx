@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 import { C } from '@/shared/lib/design-tokens';
-import { getRisks, createRisk, updateRisk, deleteRisk } from '@/app/actions/risks';
+import { getRisks, createRisk, updateRisk, deleteRisk, updateControlEffectiveness } from '@/app/actions/risks';
 import { FormModal } from '@/shared/components/form-modal';
 import { RiskForm } from '@/shared/components/forms/risk-form';
 import { PageSkeleton } from '@/shared/components/skeleton-loader';
@@ -264,22 +264,34 @@ export default function RiskRegisterPage() {
     try {
       const result = await getRisks();
       if (result && Array.isArray(result) && result.length > 0) {
-        const mapped: Risk[] = result.map((r: Record<string, unknown>) => ({
-          id: String(r.id ?? ''),
-          name: String(r.title ?? ''),
-          cat: String(r.category ?? ''),
-          module: String(r.module ?? ''),
-          inherent: Number(r.riskScore ?? (Number(r.probability ?? 3) * Number(r.impact ?? 3))),
-          reg: String(r.regulationCode ?? ''),
-          section: String(r.sectionRef ?? ''),
-          reqId: String(r.reqCode ?? ''),
-          controls: [],
-          tier: undefined,
-          probability: Number(r.probability ?? 3),
-          impact: Number(r.impact ?? 3),
-          description: String(r.description ?? ''),
-          status: String(r.status ?? 'open'),
-        }));
+        const mapped: Risk[] = result.map((r: Record<string, unknown>) => {
+          // Map controls from DB join
+          const dbControls = Array.isArray(r.controls) ? r.controls : [];
+          const mappedControls: Control[] = dbControls.map((c: Record<string, unknown>) => ({
+            id: String(c.id ?? ''),
+            name: String(c.title ?? ''),
+            effectiveness: Number(c.effectivenessScore ?? 3),
+            reg: String(c.regulationCode ?? ''),
+            section: String(c.sectionRef ?? ''),
+            reqId: String(c.reqCode ?? ''),
+          }));
+          return {
+            id: String(r.id ?? ''),
+            name: String(r.title ?? ''),
+            cat: String(r.category ?? ''),
+            module: String(r.module ?? ''),
+            inherent: Number(r.riskScore ?? (Number(r.probability ?? 3) * Number(r.impact ?? 3))),
+            reg: String(r.regulationCode ?? ''),
+            section: String(r.sectionRef ?? ''),
+            reqId: String(r.reqCode ?? ''),
+            controls: mappedControls,
+            tier: undefined,
+            probability: Number(r.probability ?? 3),
+            impact: Number(r.impact ?? 3),
+            description: String(r.description ?? ''),
+            status: String(r.status ?? 'open'),
+          };
+        });
         setRisks(mapped);
       }
     } catch { /* fallback to demo */ } finally { setLoading(false); }
@@ -289,17 +301,36 @@ export default function RiskRegisterPage() {
   const filtered = filterCat === 'הכל' ? risks : risks.filter(r => r.cat === filterCat);
   const selected = risks.find(r => r.id === selectedId);
 
-  const updateControlEff = (riskId: string, ctrlId: string, eff: number) => {
+  const updateControlEff = async (riskId: string, ctrlId: string, eff: number) => {
+    // Optimistic update
     setRisks(prev => prev.map(r =>
       r.id === riskId
         ? { ...r, controls: r.controls.map(c => c.id === ctrlId ? { ...c, effectiveness: eff } : c) }
         : r
     ));
+    // Persist to DB
+    try {
+      await updateControlEffectiveness(ctrlId, eff);
+    } catch {
+      // Revert on failure and reload
+      await loadData();
+      showToast('שגיאה בעדכון אפקטיביות הבקרה', 'error');
+    }
   };
 
-  const updateRiskName = (riskId: string, newName: string) => {
-    if (newName.trim()) setRisks(prev => prev.map(r => r.id === riskId ? { ...r, name: newName.trim() } : r));
+  const updateRiskName = async (riskId: string, newName: string) => {
+    if (!newName.trim()) { setEditingName(false); return; }
+    // Optimistic update
+    setRisks(prev => prev.map(r => r.id === riskId ? { ...r, name: newName.trim() } : r));
     setEditingName(false);
+    // Persist to DB
+    try {
+      await updateRisk(riskId, { title: newName.trim() });
+    } catch {
+      // Revert on failure and reload
+      await loadData();
+      showToast('שגיאה בעדכון שם הסיכון', 'error');
+    }
   };
 
   const showToast = (message: string, type: 'success' | 'error') => {

@@ -13,7 +13,27 @@ export async function getRisks(filters?: { category?: string; status?: string })
   let filtered = results;
   if (filters?.category) filtered = filtered.filter(r => r.category === filters.category);
   if (filters?.status) filtered = filtered.filter(r => r.status === filters.status);
-  return filtered;
+
+  // Load linked controls for all returned risks
+  const riskIds = filtered.map(r => r.id);
+  if (riskIds.length === 0) return filtered.map(r => ({ ...r, controls: [] }));
+
+  const allLinks = await db
+    .select({ riskId: riskControls.riskId, control: controls })
+    .from(riskControls)
+    .innerJoin(controls, eq(riskControls.controlId, controls.id));
+
+  const controlsByRisk = new Map<string, typeof allLinks>();
+  for (const link of allLinks) {
+    const arr = controlsByRisk.get(link.riskId) ?? [];
+    arr.push(link);
+    controlsByRisk.set(link.riskId, arr);
+  }
+
+  return filtered.map(r => ({
+    ...r,
+    controls: (controlsByRisk.get(r.id) ?? []).map(lc => lc.control),
+  }));
 }
 
 export async function getRiskById(id: string) {
@@ -55,6 +75,25 @@ export async function deleteRisk(id: string) {
   await db.delete(riskControls).where(eq(riskControls.riskId, id));
   await db.delete(risks).where(and(eq(risks.id, id), eq(risks.tenantId, user.tenant_id)));
   await logAction({ action: 'risk.deleted', entity_type: 'risk', entity_id: id, user_id: user.id, tenant_id: user.tenant_id });
+}
+
+export async function updateControlEffectiveness(controlId: string, effectivenessScore: number) {
+  const user = await getCurrentUserOrDemo();
+  const effMap: Record<number, string> = {
+    1: 'ineffective',
+    2: 'ineffective',
+    3: 'partially_effective',
+    4: 'effective',
+    5: 'effective',
+  };
+  const [updated] = await db.update(controls).set({
+    effectivenessScore,
+    effectiveness: (effMap[effectivenessScore] ?? 'untested') as 'effective' | 'partially_effective' | 'ineffective' | 'untested',
+    updatedAt: new Date(),
+  }).where(and(eq(controls.id, controlId), eq(controls.tenantId, user.tenant_id))).returning();
+  if (!updated) throw new Error('Control not found');
+  await logAction({ action: 'control.updated', entity_type: 'control', entity_id: controlId, user_id: user.id, tenant_id: user.tenant_id, details: { effectivenessScore } });
+  return updated;
 }
 
 export async function getLossEvents() {
