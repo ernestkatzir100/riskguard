@@ -311,6 +311,7 @@ export default function RiskRegisterPage() {
     // Persist to DB
     try {
       await updateControlEffectiveness(ctrlId, eff);
+      await loadData();
     } catch {
       // Revert on failure and reload
       await loadData();
@@ -326,6 +327,7 @@ export default function RiskRegisterPage() {
     // Persist to DB
     try {
       await updateRisk(riskId, { title: newName.trim() });
+      await loadData();
     } catch {
       // Revert on failure and reload
       await loadData();
@@ -347,6 +349,7 @@ export default function RiskRegisterPage() {
     try {
       await deleteRisk(removedRisk.id);
       showToast('הסיכון נמחק בהצלחה', 'success');
+      await loadData();
     } catch {
       setRisks(prev => [...prev, removedRisk]);
       showToast('שגיאה במחיקת הסיכון', 'error');

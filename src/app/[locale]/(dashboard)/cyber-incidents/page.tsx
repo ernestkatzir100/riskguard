@@ -543,6 +543,7 @@ export default function CyberIncidentsPage() {
         try {
           await deleteCyberIncident(deleteTarget.id);
           showToast('האירוע נמחק בהצלחה');
+          await loadData();
         } catch {
           setIncidents(prev);
           showToast('שגיאה במחיקת האירוע', 'error');

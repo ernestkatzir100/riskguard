@@ -269,6 +269,7 @@ export default function DocumentsPage() {
     try {
       await deleteDocument(deleteTarget.id);
       showToast('המסמך נמחק בהצלחה');
+      await loadData();
     } catch {
       setDocs(prev);
       showToast('שגיאה במחיקת המסמך', 'error');
@@ -279,6 +280,7 @@ export default function DocumentsPage() {
     try {
       await updateDocumentStatus(id, newStatus as 'draft' | 'pending_approval' | 'approved' | 'expired');
       setDocs(prev => prev.map(d => d.id === id ? { ...d, status: newStatus as DocStatus } : d));
+      await loadData();
     } catch {
       /* fallback: update locally */
       setDocs(prev => prev.map(d => d.id === id ? { ...d, status: newStatus as DocStatus } : d));

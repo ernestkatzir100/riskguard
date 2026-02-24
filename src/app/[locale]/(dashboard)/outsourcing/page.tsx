@@ -401,6 +401,7 @@ export default function OutsourcingPage() {
         try {
           await deleteVendor(deleteTarget.id);
           showToast('הספק נמחק בהצלחה');
+          await loadData();
         } catch {
           setVendors(prev);
           showToast('שגיאה במחיקת הספק', 'error');

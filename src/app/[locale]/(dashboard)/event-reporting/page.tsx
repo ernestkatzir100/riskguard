@@ -152,6 +152,7 @@ export default function EventReportingPage() {
     try {
       await deleteLossEvent(deleteTarget.dbId);
       showToast('אירוע נמחק');
+      await reloadEvents();
     } catch { setEventData(prev); showToast('שגיאה במחיקה', 'error'); }
   }
 

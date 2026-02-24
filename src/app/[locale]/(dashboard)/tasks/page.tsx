@@ -218,6 +218,7 @@ export default function TasksPage() {
     try {
       await completeTask(id);
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'completed' as TaskStatus } : t));
+      await loadData();
     } catch {
       /* fallback: update locally */
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'completed' as TaskStatus } : t));
@@ -228,6 +229,7 @@ export default function TasksPage() {
     try {
       await updateTaskStatus(id, newStatus);
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+      await loadData();
     } catch {
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
     }
@@ -241,6 +243,7 @@ export default function TasksPage() {
     try {
       await deleteTask(deleteTarget.id);
       showToast('המשימה נמחקה בהצלחה');
+      await loadData();
     } catch {
       setTasks(prev);
       showToast('שגיאה במחיקת המשימה', 'error');

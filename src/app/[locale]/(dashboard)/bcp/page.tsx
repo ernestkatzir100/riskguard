@@ -109,41 +109,41 @@ export default function BCPPage() {
     try {
       if (deleteTestTarget.id) await deleteBCPTest(deleteTestTarget.id);
       showToast('תרגיל נמחק');
+      await loadData();
     } catch { setDrTests(prev); showToast('שגיאה במחיקה', 'error'); }
   }
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [, funcsRes, testsRes] = await Promise.all([
-          getBCPPlan(),
-          getCriticalFunctions(),
-          getBCPTests(),
-        ]);
-        if (funcsRes?.length) {
-          setBiaProcesses(funcsRes.map((f: Record<string, unknown>) => ({
-            name: String(f.functionName ?? ''),
-            rto: f.rtoHours ? `${f.rtoHours} שעות` : '—',
-            rpo: f.rpoHours ? `${f.rpoHours} שעות` : '—',
-            impact: Number(f.impactLevel) >= 5 ? 'קריטי' : Number(f.impactLevel) >= 4 ? 'גבוה' : 'בינוני',
-            alternative: String(f.dependencies ?? '—'),
-            status: 'partial' as const,
-          })));
-        }
-        if (testsRes?.length) {
-          setDrTests(testsRes.map((t: Record<string, unknown>) => ({
-            id: String(t.id ?? ''),
-            type: String(t.testType ?? ''),
-            frequency: '—',
-            lastTest: t.testDate ? new Date(t.testDate as string).toLocaleDateString('he-IL') : '—',
-            nextDue: t.nextTestDate ? new Date(t.nextTestDate as string).toLocaleDateString('he-IL') : '—',
-            status: 'ok' as const,
-          })));
-        }
-      } catch { /* demo fallback */ } finally { setLoading(false); }
-    }
-    loadData();
-  }, []);
+  async function loadData() {
+    try {
+      const [, funcsRes, testsRes] = await Promise.all([
+        getBCPPlan(),
+        getCriticalFunctions(),
+        getBCPTests(),
+      ]);
+      if (funcsRes?.length) {
+        setBiaProcesses(funcsRes.map((f: Record<string, unknown>) => ({
+          name: String(f.functionName ?? ''),
+          rto: f.rtoHours ? `${f.rtoHours} שעות` : '—',
+          rpo: f.rpoHours ? `${f.rpoHours} שעות` : '—',
+          impact: Number(f.impactLevel) >= 5 ? 'קריטי' : Number(f.impactLevel) >= 4 ? 'גבוה' : 'בינוני',
+          alternative: String(f.dependencies ?? '—'),
+          status: 'partial' as const,
+        })));
+      }
+      if (testsRes?.length) {
+        setDrTests(testsRes.map((t: Record<string, unknown>) => ({
+          id: String(t.id ?? ''),
+          type: String(t.testType ?? ''),
+          frequency: '—',
+          lastTest: t.testDate ? new Date(t.testDate as string).toLocaleDateString('he-IL') : '—',
+          nextDue: t.nextTestDate ? new Date(t.nextTestDate as string).toLocaleDateString('he-IL') : '—',
+          status: 'ok' as const,
+        })));
+      }
+    } catch { /* demo fallback */ } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadData(); }, []);
 
   const complianceScore = 45;
   const docApproved = BCP_DOCUMENTS.filter(d => d.status === 'approved').length;

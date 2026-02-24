@@ -156,27 +156,26 @@ export default function KRIPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const rows = await getKRIs();
-        if (rows.length > 0) {
-          setKriData(rows.map((r) => ({
-            id: r.id,
-            name: r.name,
-            value: Number(r.currentValue) || 0,
-            unit: '',
-            threshold: { green: 5, yellow: 7, red: 10 },
-            trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0],
-            cat: 'כללי',
-          })));
-        }
-      } catch {
-        /* silent fallback to demo KRI_DATA */
-      } finally { setLoading(false); }
-    }
-    loadData();
-  }, []);
+  async function loadData() {
+    try {
+      const rows = await getKRIs();
+      if (rows.length > 0) {
+        setKriData(rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          value: Number(r.currentValue) || 0,
+          unit: '',
+          threshold: { green: 5, yellow: 7, red: 10 },
+          trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0],
+          cat: 'כללי',
+        })));
+      }
+    } catch {
+      /* silent fallback to demo KRI_DATA */
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadData(); }, []);
 
   const filtered = filterCat === 'הכל' ? kriData : kriData.filter(k => k.cat === filterCat);
 
@@ -498,15 +497,7 @@ export default function KRIPage() {
             await createKRI(data);
             setShowAddKRI(false);
             showToast('המדד נוסף בהצלחה');
-            // reload
-            const rows = await getKRIs();
-            if (rows.length > 0) {
-              setKriData(rows.map((r) => ({
-                id: r.id, name: r.name, value: Number(r.currentValue) || 0,
-                unit: '', threshold: { green: 5, yellow: 7, red: 10 },
-                trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0], cat: 'כללי',
-              })));
-            }
+            await loadData();
           } catch {
             showToast('שגיאה ביצירת המדד', 'error');
           }
@@ -538,14 +529,7 @@ export default function KRIPage() {
               await updateKRI(editKRI.id, data);
               setEditKRI(null);
               showToast('המדד עודכן בהצלחה');
-              const rows = await getKRIs();
-              if (rows.length > 0) {
-                setKriData(rows.map((r) => ({
-                  id: r.id, name: r.name, value: Number(r.currentValue) || 0,
-                  unit: '', threshold: { green: 5, yellow: 7, red: 10 },
-                  trend: [0, 0, 0, 0, 0, Number(r.currentValue) || 0], cat: 'כללי',
-                })));
-              }
+              await loadData();
             } catch {
               showToast('שגיאה בעדכון המדד', 'error');
             }
@@ -568,6 +552,7 @@ export default function KRIPage() {
         try {
           await deleteKRI(deleteTarget.id);
           showToast('המדד נמחק בהצלחה');
+          await loadData();
         } catch {
           setKriData(prev);
           showToast('שגיאה במחיקת המדד', 'error');
