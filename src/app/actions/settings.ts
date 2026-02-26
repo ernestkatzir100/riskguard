@@ -196,7 +196,7 @@ export async function getUsers() {
 export async function inviteUser(email: string, role: string) {
   const user = await getCurrentUserOrDemo();
 
-  // Placeholder: actual Supabase Auth invite requires a service role key.
+  // Placeholder: actual invite email would be sent via Resend.
   // For now, create a notification for the admin to track the invite.
   const [notification] = await db.insert(notifications).values({
     tenantId: user.tenant_id,

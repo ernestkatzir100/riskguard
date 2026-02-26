@@ -467,7 +467,7 @@ export const documents = pgTable('documents', {
   version: varchar('version', { length: 20 }).default('1.0'),
   status: documentStatusEnum('status').notNull().default('draft'),
   content: jsonb('content').$type<Record<string, unknown>>(),
-  filePath: text('file_path'), // Supabase Storage URL
+  filePath: text('file_path'),
   approvedBy: uuid('approved_by').references(() => users.id),
   approvedAt: timestamp('approved_at'),
   expiresAt: timestamp('expires_at'),

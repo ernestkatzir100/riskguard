@@ -1,7 +1,7 @@
 'use server';
 
 // Report scheduler placeholder
-// In production, this would be triggered by a Supabase Edge Function or cron job
+// In production, this would be triggered by a cron job
 
 import { db } from '@/db';
 import { tasks } from '@/db/schema';
