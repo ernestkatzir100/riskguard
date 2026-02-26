@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import * as schema from './schema';
 import dns from 'dns';
 
-// Force IPv4 DNS resolution — Railway containers can't reach Supabase over IPv6
+// Force IPv4 DNS resolution for Railway
 dns.setDefaultResultOrder('ipv4first');
 
 const connectionString = process.env.DATABASE_URL!;

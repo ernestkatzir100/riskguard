@@ -244,10 +244,8 @@ export function TopNav() {
 
   const handleLogout = async () => {
     try {
-      const { getSupabaseBrowser } = await import('@/shared/lib/supabase-client');
-      const supabase = getSupabaseBrowser();
-      await supabase.auth.signOut();
-    } catch { /* ignore if supabase not configured */ }
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch { /* ignore */ }
     router.push('/he/login');
     router.refresh();
   };

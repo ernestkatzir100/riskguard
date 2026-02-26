@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { getSupabaseBrowser } from '@/shared/lib/supabase-client';
 import { C } from '@/shared/lib/design-tokens';
 
 export default function LoginPage() {
@@ -21,18 +20,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const supabase = getSupabaseBrowser();
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authError) {
-        if (authError.message.includes('Invalid login')) {
-          setError('אימייל או סיסמה שגויים');
-        } else {
-          setError('שגיאה בהתחברות. נסה שנית.');
-        }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || 'שגיאה בהתחברות. נסה שנית.');
         return;
       }
 

@@ -3,6 +3,7 @@ config({ path: '.env.local' });
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import bcrypt from 'bcryptjs';
 import * as schema from './schema';
 
 const client = postgres(process.env.DATABASE_URL!, { max: 1 });
@@ -28,18 +29,19 @@ async function seed() {
   const tid = tenant.id;
   console.log(`  ✓ Tenant: ${tenant.name} (${tid})`);
 
-  // ═══ 2. DEMO USER (will be linked to auth later) ═══
-  // We create a placeholder user — real user links to Supabase Auth on first login
+  // ═══ 2. DEMO USER ═══
   const demoUserId = '00000000-0000-0000-0000-000000000001';
+  const demoPasswordHash = await bcrypt.hash('demo123', 12);
   await db.insert(schema.users).values({
     id: demoUserId,
     tenantId: tid,
     email: 'demo@riskguard.co.il',
     fullName: 'דוד כהן',
+    passwordHash: demoPasswordHash,
     role: 'admin',
     jobTitle: 'מנהל סיכונים ראשי',
   }).onConflictDoNothing();
-  console.log('  ✓ Demo user created');
+  console.log('  ✓ Demo user created (demo@riskguard.co.il / demo123)');
 
   // ═══ 3. RISK OFFICER ═══
   await db.insert(schema.riskOfficers).values({

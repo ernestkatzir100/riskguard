@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Shield, Mail, Lock, User, Building2 } from 'lucide-react';
-import { getSupabaseBrowser } from '@/shared/lib/supabase-client';
 import { C } from '@/shared/lib/design-tokens';
 
 export default function SignupPage() {
@@ -26,39 +25,12 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const supabase = getSupabaseBrowser();
-
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: { full_name: form.fullName, company_name: form.companyName },
-        },
-      });
-
-      if (authError) {
-        console.error('[Signup] Auth error:', authError.message, authError);
-        if (authError.message.includes('already registered')) {
-          setError('כתובת האימייל כבר רשומה במערכת');
-        } else {
-          setError(`שגיאה בהרשמה: ${authError.message}`);
-        }
-        return;
-      }
-
-      if (!authData.user) {
-        setError('שגיאה ביצירת המשתמש');
-        return;
-      }
-
-      // 2. Create tenant + user records via server action
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: authData.user.id,
           email: form.email,
+          password: form.password,
           fullName: form.fullName,
           companyName: form.companyName,
         }),
@@ -66,8 +38,7 @@ export default function SignupPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        console.error('[Signup] API error:', res.status, body);
-        setError(`שגיאה ביצירת החשבון: ${body.error ?? res.statusText}`);
+        setError(body.error || 'שגיאה בהרשמה');
         return;
       }
 
@@ -75,7 +46,7 @@ export default function SignupPage() {
       router.refresh();
     } catch (err) {
       console.error('[Signup] Unexpected error:', err);
-      setError(`שגיאה בהרשמה: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError('שגיאה בהרשמה. נסה שנית.');
     } finally {
       setLoading(false);
     }

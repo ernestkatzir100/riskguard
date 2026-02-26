@@ -1,7 +1,7 @@
 'use server';
 import { db } from '@/db';
 import { documents } from '@/db/schema';
-import { getCurrentUserOrDemo, createSupabaseServer } from '@/shared/lib/auth';
+import { getCurrentUserOrDemo } from '@/shared/lib/auth';
 import { logAction } from '@/shared/lib/audit';
 import { createDocumentSchema } from '@/shared/lib/validators';
 import { eq, and, desc } from 'drizzle-orm';
@@ -106,21 +106,11 @@ export async function uploadDocumentFile(documentId: string, formData: FormData)
   const file = formData.get('file') as File | null;
   if (!file) throw new Error('No file provided');
 
-  const supabase = await createSupabaseServer();
-  const filePath = `${user.tenant_id}/${documentId}/${file.name}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('documents')
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('documents')
-    .getPublicUrl(filePath);
+  // Store file path reference (file storage TBD — S3/local)
+  const filePath = `/uploads/${user.tenant_id}/${documentId}/${file.name}`;
 
   const [updated] = await db.update(documents)
-    .set({ filePath: publicUrl, updatedAt: new Date() })
+    .set({ filePath, updatedAt: new Date() })
     .where(and(eq(documents.id, documentId), eq(documents.tenantId, user.tenant_id)))
     .returning();
 
@@ -130,8 +120,8 @@ export async function uploadDocumentFile(documentId: string, formData: FormData)
     entity_id: documentId,
     user_id: user.id,
     tenant_id: user.tenant_id,
-    details: { fileName: file.name, filePath: publicUrl },
+    details: { fileName: file.name, filePath },
   });
 
-  return { url: publicUrl, document: updated };
+  return { url: filePath, document: updated };
 }

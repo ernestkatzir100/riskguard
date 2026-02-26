@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════
 // RiskGuard — Database Schema (Drizzle ORM)
 // Source: Architecture Document v1.0, Section 5
-// Stack: PostgreSQL 15+ via Supabase, Drizzle ORM
-// Pattern: Multi-tenant with RLS, tenant_id on every scoped table
+// Stack: PostgreSQL 15+ via Railway, Drizzle ORM
+// Pattern: Multi-tenant, tenant_id on every scoped table
 // ═══════════════════════════════════════════════════════════════════════
 
 import {
@@ -129,10 +129,11 @@ export const tenants = pgTable('tenants', {
 });
 
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey(), // = auth.uid from Supabase Auth
+  id: uuid('id').defaultRandom().primaryKey(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   email: varchar('email', { length: 255 }).notNull(),
   fullName: varchar('full_name', { length: 255 }).notNull(),
+  passwordHash: text('password_hash'),
   role: userRoleEnum('role').notNull().default('viewer'),
   phone: varchar('phone', { length: 30 }),
   jobTitle: varchar('job_title', { length: 255 }),
