@@ -104,6 +104,38 @@ export const protocolApprovalEnum = pgEnum('protocol_approval_status', [
   'pending', 'approved', 'commented', 'rejected',
 ]);
 
+export const boardMeetingStageEnum = pgEnum('board_meeting_stage', [
+  'draft', 'scheduled', 'in_progress', 'pending_approval', 'approved',
+]);
+
+export const boardTopicGroupEnum = pgEnum('board_topic_group', [
+  'business', 'regulatory', 'risk',
+]);
+
+export const boardTopicIntervalEnum = pgEnum('board_topic_interval', [
+  'monthly', 'quarterly', 'semi_annual', 'annual', 'ad_hoc',
+]);
+
+export const boardAgendaItemStatusEnum = pgEnum('board_agenda_item_status', [
+  'pending', 'discussed', 'postponed', 'cancelled',
+]);
+
+export const boardActionItemPriorityEnum = pgEnum('board_action_item_priority', [
+  'high', 'medium', 'low',
+]);
+
+export const boardActionItemStatusEnum = pgEnum('board_action_item_status', [
+  'open', 'in_progress', 'done', 'overdue',
+]);
+
+export const boardApprovalStatusEnum = pgEnum('board_approval_status', [
+  'pending', 'approved', 'rejected',
+]);
+
+export const boardRecurringFrequencyEnum = pgEnum('board_recurring_frequency', [
+  'monthly', 'quarterly', 'semi_annual', 'annual',
+]);
+
 // ═══════════════════════════════════════════════
 // 5.1 CORE TABLES (Multi-Tenancy & Auth)
 // ═══════════════════════════════════════════════
@@ -550,16 +582,72 @@ export const directors = pgTable('directors', {
   tenantIdx: index('directors_tenant_idx').on(t.tenantId),
 }));
 
+export const boardCommittees = pgTable('board_committees', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: varchar('type', { length: 100 }).notNull(),
+  quorumMinimum: integer('quorum_minimum').notNull().default(1),
+  meetingFrequency: varchar('meeting_frequency', { length: 50 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  tenantIdx: index('bc_tenant_idx').on(t.tenantId),
+}));
+
+export const boardCommitteeMembers = pgTable('board_committee_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  committeeId: uuid('committee_id').notNull().references(() => boardCommittees.id),
+  directorId: uuid('director_id').notNull().references(() => directors.id),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+}, (t) => ({
+  committeeDirIdx: uniqueIndex('bcm_committee_dir_idx').on(t.committeeId, t.directorId),
+}));
+
+export const boardTopics = pgTable('board_topics', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  committeeId: uuid('committee_id').references(() => boardCommittees.id),
+  title: varchar('title', { length: 500 }).notNull(),
+  group: boardTopicGroupEnum('group').notNull(),
+  interval: boardTopicIntervalEnum('interval').notNull(),
+  regulationRef: varchar('regulation_ref', { length: 255 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  tenantIdx: index('bt_tenant_idx').on(t.tenantId),
+}));
+
+export const boardRecurringSeries = pgTable('board_recurring_series', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  committeeId: uuid('committee_id').notNull().references(() => boardCommittees.id),
+  frequency: boardRecurringFrequencyEnum('frequency').notNull(),
+  nextDate: date('next_date'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  tenantIdx: index('brs_tenant_idx').on(t.tenantId),
+}));
+
 export const boardMeetings = pgTable('board_meetings', {
   id: uuid('id').defaultRandom().primaryKey(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
-  meetingType: varchar('meeting_type', { length: 100 }).notNull(), // e.g. 'ישיבת דירקטוריון רבעונית'
+  meetingType: varchar('meeting_type', { length: 100 }).notNull(),
   date: date('date').notNull(),
   quarter: varchar('quarter', { length: 10 }),
   status: boardMeetingStatusEnum('status').notNull().default('scheduled'),
   agenda: jsonb('agenda').$type<string[]>().default([]),
   summary: text('summary'),
   attendees: jsonb('attendees').$type<string[]>().default([]),
+  committeeId: uuid('committee_id').references(() => boardCommittees.id),
+  stage: boardMeetingStageEnum('stage').notNull().default('draft'),
+  quorumMet: boolean('quorum_met').default(false),
+  recurringSeriesId: uuid('recurring_series_id').references(() => boardRecurringSeries.id),
+  time: varchar('time', { length: 10 }),
+  location: varchar('location', { length: 255 }),
+  locationType: varchar('location_type', { length: 50 }),
+  minutesText: text('minutes_text'),
   agendaSentAt: timestamp('agenda_sent_at'),
   summarySentAt: timestamp('summary_sent_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -576,12 +664,93 @@ export const boardDecisions = pgTable('board_decisions', {
   ownerId: uuid('owner_id').references(() => users.id),
   ownerName: varchar('owner_name', { length: 255 }),
   dueDate: date('due_date'),
-  status: varchar('status', { length: 30 }).notNull().default('pending'), // pending/in_progress/done
-  taskId: uuid('task_id').references(() => tasks.id), // linked task for tracking
+  status: varchar('status', { length: 30 }).notNull().default('pending'),
+  taskId: uuid('task_id').references(() => tasks.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   meetingIdx: index('bd_meeting_idx').on(t.meetingId),
   tenantIdx: index('bd_tenant_idx').on(t.tenantId),
+}));
+
+export const boardAgendaItems = pgTable('board_agenda_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  meetingId: uuid('meeting_id').notNull().references(() => boardMeetings.id),
+  topicId: uuid('topic_id').references(() => boardTopics.id),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  title: varchar('title', { length: 500 }).notNull(),
+  orderIndex: integer('order_index').notNull().default(0),
+  presenter: varchar('presenter', { length: 255 }),
+  estimatedMinutes: integer('estimated_minutes'),
+  status: boardAgendaItemStatusEnum('status').notNull().default('pending'),
+  discussionNotes: text('discussion_notes'),
+  group: boardTopicGroupEnum('group'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  meetingIdx: index('bai_meeting_idx').on(t.meetingId),
+  tenantIdx: index('bai_tenant_idx').on(t.tenantId),
+}));
+
+export const boardActionItems = pgTable('board_action_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  meetingId: uuid('meeting_id').references(() => boardMeetings.id),
+  agendaItemId: uuid('agenda_item_id').references(() => boardAgendaItems.id),
+  title: text('title').notNull(),
+  ownerId: uuid('owner_id').references(() => users.id),
+  ownerName: varchar('owner_name', { length: 255 }),
+  dueDate: date('due_date'),
+  priority: boardActionItemPriorityEnum('priority').notNull().default('medium'),
+  status: boardActionItemStatusEnum('status').notNull().default('open'),
+  linkedRegulationRef: varchar('linked_regulation_ref', { length: 255 }),
+  syncedToTasks: boolean('synced_to_tasks').notNull().default(false),
+  taskId: uuid('task_id').references(() => tasks.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  tenantIdx: index('bact_tenant_idx').on(t.tenantId),
+  meetingIdx: index('bact_meeting_idx').on(t.meetingId),
+}));
+
+export const boardDocuments = pgTable('board_documents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  meetingId: uuid('meeting_id').references(() => boardMeetings.id),
+  agendaItemId: uuid('agenda_item_id').references(() => boardAgendaItems.id),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  filename: varchar('filename', { length: 500 }).notNull(),
+  fileType: varchar('file_type', { length: 50 }),
+  fileData: text('file_data').notNull(),
+  uploadedBy: uuid('uploaded_by').references(() => users.id),
+  uploadedAt: timestamp('uploaded_at').notNull().defaultNow(),
+}, (t) => ({
+  meetingIdx: index('bdoc_meeting_idx').on(t.meetingId),
+  tenantIdx: index('bdoc_tenant_idx').on(t.tenantId),
+}));
+
+export const boardApprovals = pgTable('board_approvals', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  meetingId: uuid('meeting_id').notNull().references(() => boardMeetings.id),
+  directorId: uuid('director_id').notNull().references(() => directors.id),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  status: boardApprovalStatusEnum('status').notNull().default('pending'),
+  token: uuid('token').defaultRandom().notNull(),
+  comment: text('comment'),
+  respondedAt: timestamp('responded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  meetingDirIdx: uniqueIndex('ba_meeting_dir_idx').on(t.meetingId, t.directorId),
+  tenantIdx: index('ba_tenant_idx').on(t.tenantId),
+  tokenIdx: index('ba_token_idx').on(t.token),
+}));
+
+export const boardAttendance = pgTable('board_attendance', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  meetingId: uuid('meeting_id').notNull().references(() => boardMeetings.id),
+  directorId: uuid('director_id').notNull().references(() => directors.id),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  attended: boolean('attended').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  meetingDirIdx: uniqueIndex('batt_meeting_dir_idx').on(t.meetingId, t.directorId),
+  tenantIdx: index('batt_tenant_idx').on(t.tenantId),
 }));
 
 export const protocolApprovals = pgTable('protocol_approvals', {
