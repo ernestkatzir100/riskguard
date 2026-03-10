@@ -1,26 +1,30 @@
-# dependencies
+# Dependencies
 node_modules/
 
-# next.js
+# Next.js build
 .next/
 out/
+dist/
 
-# env files (keep .env.example)
+# Environment files
 .env
 .env.local
 .env.production
 .env*.local
 
-# debug
+# System files
+.DS_Store
+*.tsbuildinfo
+
+# Railway
+.railway/
+
+# Debug
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # IDE
 .vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# docx reference files (too large for git)
-*.docx
+*.swp
+*.swo
