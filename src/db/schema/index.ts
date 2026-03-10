@@ -588,6 +588,7 @@ export const boardCommittees = pgTable('board_committees', {
   name: varchar('name', { length: 255 }).notNull(),
   type: varchar('type', { length: 100 }).notNull(),
   quorumMinimum: integer('quorum_minimum').notNull().default(1),
+  quorumType: varchar('quorum_type', { length: 20 }).notNull().default('majority'),
   meetingFrequency: varchar('meeting_frequency', { length: 50 }),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -612,6 +613,7 @@ export const boardTopics = pgTable('board_topics', {
   group: boardTopicGroupEnum('group').notNull(),
   interval: boardTopicIntervalEnum('interval').notNull(),
   regulationRef: varchar('regulation_ref', { length: 255 }),
+  lastDiscussedAt: timestamp('last_discussed_at'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
@@ -648,6 +650,8 @@ export const boardMeetings = pgTable('board_meetings', {
   location: varchar('location', { length: 255 }),
   locationType: varchar('location_type', { length: 50 }),
   minutesText: text('minutes_text'),
+  recurringFrequency: varchar('recurring_frequency', { length: 50 }),
+  nextMeetingDate: date('next_meeting_date'),
   agendaSentAt: timestamp('agenda_sent_at'),
   summarySentAt: timestamp('summary_sent_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -684,6 +688,7 @@ export const boardAgendaItems = pgTable('board_agenda_items', {
   status: boardAgendaItemStatusEnum('status').notNull().default('pending'),
   discussionNotes: text('discussion_notes'),
   group: boardTopicGroupEnum('group'),
+  isCarriedOver: boolean('is_carried_over').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   meetingIdx: index('bai_meeting_idx').on(t.meetingId),
@@ -704,6 +709,7 @@ export const boardActionItems = pgTable('board_action_items', {
   linkedRegulationRef: varchar('linked_regulation_ref', { length: 255 }),
   syncedToTasks: boolean('synced_to_tasks').notNull().default(false),
   taskId: uuid('task_id').references(() => tasks.id),
+  completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   tenantIdx: index('bact_tenant_idx').on(t.tenantId),
@@ -747,6 +753,7 @@ export const boardAttendance = pgTable('board_attendance', {
   directorId: uuid('director_id').notNull().references(() => directors.id),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   attended: boolean('attended').notNull().default(false),
+  proxyFor: varchar('proxy_for', { length: 255 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   meetingDirIdx: uniqueIndex('batt_meeting_dir_idx').on(t.meetingId, t.directorId),
