@@ -266,18 +266,20 @@ export default function BoardPage() {
                         {mtg.minutes}
                       </span>
                     </div>
+                    {mtg.decisions && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 10, color: C.textMuted, fontFamily: 'var(--font-assistant)' }}>החלטות:</span>
                       <span style={{ fontSize: 11, fontWeight: 600, color: C.text, fontFamily: 'var(--font-rubik)' }}>
-                        {mtg.decisions!.total}
+                        {mtg.decisions.total}
                       </span>
                       <span style={{ background: C.successBg, color: C.success, fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>
-                        {mtg.decisions!.done} בוצעו
+                        {mtg.decisions.done} בוצעו
                       </span>
                       <span style={{ background: C.warningBg, color: C.warning, fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, fontFamily: 'var(--font-rubik)' }}>
-                        {mtg.decisions!.active} פעילה
+                        {mtg.decisions.active} פעילה
                       </span>
                     </div>
+                    )}
                   </div>
                 )}
 
